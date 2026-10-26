@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Student Information{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="college-tag">
+    <span>&#127891;</span> D.Y. Patil College of Engineering & Technology, Kolhapur
+  </div>
+  <h2>Student Information & Academic Profile</h2>
+  <p>
+    Manage your official student credentials. These details are printed on your semester grade reports and CGPA transcripts.
+  </p>
+</div>
+
+<div class="grid-2">
+  <!-- Profile Edit Form -->
+  <div class="card">
+    <h3 class="card-title">
+      <span>&#9998; Update Student Details</span>
+    </h3>
+
+    <form method="POST" action="{{ url_for('student_info_view') }}">
+      <div class="form-group">
+        <label for="studentName" class="form-label">
+          Full Name <span class="req">*</span>
+        </label>
+        <input 
+          type="text" 
+          id="studentName" 
+          name="name" 
+          class="form-control" 
+          value="{{ profile.name }}" 
+          required 
+          placeholder="Enter your full name"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="rollNo" class="form-label">
+          Roll Number
+        </label>
+        <input 
+          type="text" 
+          id="rollNo" 
+          name="roll_no" 
+          class="form-control" 
+          value="{{ profile.roll_no or '' }}" 
+          placeholder="e.g. 69 or 23DS042"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="branchName" class="form-label">
+          Branch & Specialization <span class="req">*</span>
+        </label>
+        <input 
+          type="text" 
+          id="branchName" 
+          name="branch" 
+          class="form-control" 
+          value="{{ profile.branch }}" 
+          required 
+          placeholder="e.g. B.Tech Computer Science & Engineering (Data Science)"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="academicYear" class="form-label">
+          Class / Academic Year <span class="req">*</span>
+        </label>
+        <input 
+          type="text" 
+          id="academicYear" 
+          name="year" 
+          class="form-control" 
+          value="{{ profile.year }}" 
+          required 
+          placeholder="e.g. Second Year (SY) - Sem IV"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="collegeName" class="form-label">
+          College / Institution Name <span class="req">*</span>
+        </label>
+        <input 
+          type="text" 
+          id="collegeName" 
+          name="college" 
+          class="form-control" 
+          value="{{ profile.college }}" 
+          required 
+          placeholder="e.g. D.Y. Patil College of Engineering & Technology, Kolhapur"
+        >
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1.5rem;">
+        &#128190; Save Profile Information
+      </button>
+    </form>
+  </div>
+
+  <!-- Profile Card & Transcript Preview -->
+  <div>
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <h3 class="card-title">
+        <span>&#129705; ID Card Preview</span>
+        <span class="badge badge-A-plus">ACTIVE STUDENT</span>
+      </h3>
+      
+      <div style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: 1.5rem; border: 1px dashed var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+          <div style="width: 54px; height: 54px; border-radius: 50%; background: var(--primary-gradient); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; font-weight: 700;">
+            {{ profile.name[0] if profile.name else 'S' }}
+          </div>
+          <div>
+            <h4 style="font-size: 1.2rem; font-weight: 700; color: var(--text-main);">
+              {{ profile.name or 'Student Name' }}
+            </h4>
+            <p style="font-size: 0.82rem; color: var(--text-muted);">
+              {{ profile.branch or 'B.Tech CSE (Data Science)' }}
+            </p>
+          </div>
+        </div>
+
+        <div style="font-size: 0.88rem; display: flex; flex-direction: column; gap: 0.5rem;">
+          <div><strong style="color: var(--text-main);">Roll No:</strong> {{ profile.roll_no or 'Not set' }}</div>
+          <div><strong style="color: var(--text-main);">Academic Year:</strong> {{ profile.year or 'Not set' }}</div>
+          <div><strong style="color: var(--text-main);">College:</strong> {{ profile.college or 'Not set' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Action Card -->
+    <div class="card" style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(6, 182, 212, 0.05) 100%);">
+      <h4 style="font-weight: 700; margin-bottom: 0.5rem;">Ready to calculate?</h4>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1rem;">
+        Your student information will be automatically attached when you export or print your marksheet.
+      </p>
+      <div style="display: flex; gap: 0.75rem;">
+        <a href="{{ url_for('calculator_view') }}" class="btn btn-primary btn-sm">
+          Calculate SGPA &rarr;
+        </a>
+        <a href="{{ url_for('tracker_view') }}" class="btn btn-outline btn-sm">
+          View CGPA Tracker &rarr;
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

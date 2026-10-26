@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Login / Register{% endblock %}
+
+{% block content %}
+<div style="max-width: 520px; margin: 1.5rem auto;">
+  <div class="card" style="padding: 2.25rem;">
+    
+    <!-- College Identity Header -->
+    <div style="text-align: center; margin-bottom: 1.75rem;">
+      <div class="college-tag">
+        <span>&#127891;</span> D.Y. Patil College of Engineering & Technology, Kolhapur
+      </div>
+      <h2 style="font-size: 1.6rem; font-weight: 700; color: var(--text-main);">
+        Student Portal
+      </h2>
+      <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.25rem;">
+        Department of CSE (Data Science) &bull; Grade Calculator
+      </p>
+    </div>
+
+    <!-- Mode Switch Tabs -->
+    <div style="display: flex; background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 4px; margin-bottom: 1.75rem;">
+      <button type="button" id="tabLogin" class="btn btn-sm btn-block" style="border-radius: var(--radius-sm); font-weight: 600;" onclick="switchAuthTab('login')">
+        Sign In
+      </button>
+      <button type="button" id="tabRegister" class="btn btn-sm btn-block btn-secondary" style="border-radius: var(--radius-sm); font-weight: 600;" onclick="switchAuthTab('register')">
+        Register New Student
+      </button>
+    </div>
+
+    <!-- Login Form -->
+    <form id="loginForm" method="POST" action="{{ url_for('login_view') }}" autocomplete="off">
+      <input type="hidden" name="action" value="login">
+
+      <!-- Hidden honeypot fields to absorb browser autofill away from real inputs -->
+      <div style="display:none; position:absolute; left:-9999px;" aria-hidden="true">
+        <input type="text" name="fakeuser" tabindex="-1" autocomplete="username">
+        <input type="password" name="fakepass" tabindex="-1" autocomplete="current-password">
+      </div>
+
+      <div class="form-group">
+        <label for="loginEmail" class="form-label">
+          Email ID <span class="req">*</span>
+        </label>
+        <input 
+          type="email" 
+          id="loginEmail" 
+          name="email" 
+          class="form-control" 
+          placeholder="Enter your email ID" 
+          required 
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="none"
+          spellcheck="false"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="loginPassword" class="form-label">
+          Password <span class="req">*</span>
+        </label>
+        <input 
+          type="password" 
+          id="loginPassword" 
+          name="password" 
+          class="form-control" 
+          placeholder="Enter your password" 
+          required 
+          autocomplete="off"
+        >
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1.5rem;">
+        Sign In to Portal &rarr;
+      </button>
+    </form>
+
+    <!-- Register Form -->
+    <form id="registerForm" method="POST" action="{{ url_for('login_view') }}" style="display: none;">
+      <input type="hidden" name="action" value="register">
+
+      <div class="form-group">
+        <label for="regName" class="form-label">
+          Full Name <span class="req">*</span>
+        </label>
+        <input 
+          type="text" 
+          id="regName" 
+          name="name" 
+          class="form-control" 
+          placeholder="Enter your full name" 
+          required
+          autocomplete="name"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="regEmail" class="form-label">
+          Email ID <span class="req">*</span>
+        </label>
+        <input 
+          type="email" 
+          id="regEmail" 
+          name="email" 
+          class="form-control" 
+          placeholder="Enter your email ID" 
+          required 
+          autocomplete="email"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="regBranch" class="form-label">
+          Branch &amp; Degree <span class="req">*</span>
+        </label>
+        <input 
+          type="text" 
+          id="regBranch" 
+          name="branch" 
+          class="form-control" 
+          placeholder="e.g. B.Tech Computer Science & Engineering" 
+          required
+        >
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="regPassword" class="form-label">
+            Password <span class="req">*</span>
+          </label>
+          <input 
+            type="password" 
+            id="regPassword" 
+            name="password" 
+            class="form-control" 
+            placeholder="Choose password" 
+            required 
+            autocomplete="new-password"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="regConfirmPassword" class="form-label">
+            Confirm Password <span class="req">*</span>
+          </label>
+          <input 
+            type="password" 
+            id="regConfirmPassword" 
+            name="confirm_password" 
+            class="form-control" 
+            placeholder="Re-enter password" 
+            required 
+            autocomplete="new-password"
+          >
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1.5rem;">
+        Register & Create Profile &rarr;
+      </button>
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function switchAuthTab(mode) {
+  const loginForm = document.getElementById('loginForm');
+  const registerForm = document.getElementById('registerForm');
+  const tabLogin = document.getElementById('tabLogin');
+  const tabRegister = document.getElementById('tabRegister');
+
+  if (mode === 'login') {
+    loginForm.style.display = 'block';
+    registerForm.style.display = 'none';
+    tabLogin.className = 'btn btn-sm btn-block btn-primary';
+    tabRegister.className = 'btn btn-sm btn-block btn-secondary';
+  } else {
+    loginForm.style.display = 'none';
+    registerForm.style.display = 'block';
+    tabLogin.className = 'btn btn-sm btn-block btn-secondary';
+    tabRegister.className = 'btn btn-sm btn-block btn-primary';
+  }
+}
+
+// Initialize active tab
+switchAuthTab('{{ auth_mode or "login" }}');
+
+// -----------------------------------------------------------------------
+// BLOCK BROWSER AUTOFILL COMPLETELY on Sign In form
+// Browsers ignore autocomplete="off" on password managers, so we use JS
+// to forcibly clear the fields right after any autofill has happened.
+// -----------------------------------------------------------------------
+function clearAutofilledLoginFields() {
+  const emailInput = document.getElementById('loginEmail');
+  const passInput  = document.getElementById('loginPassword');
+
+  // Only clear if the field was NOT already interacted with by the user
+  if (emailInput && !emailInput.dataset.userTyped) {
+    emailInput.value = '';
+  }
+  if (passInput && !passInput.dataset.userTyped) {
+    passInput.value = '';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Mark fields as "user-typed" once the user actually types
+  ['loginEmail', 'loginPassword'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', function() { el.dataset.userTyped = '1'; });
+      el.addEventListener('keydown', function() { el.dataset.userTyped = '1'; });
+    }
+  });
+
+  // Clear autofilled values repeatedly — browsers inject autofill asynchronously
+  clearAutofilledLoginFields();
+  setTimeout(clearAutofilledLoginFields, 50);
+  setTimeout(clearAutofilledLoginFields, 200);
+  setTimeout(clearAutofilledLoginFields, 500);
+});
+</script>
+{% endblock %}

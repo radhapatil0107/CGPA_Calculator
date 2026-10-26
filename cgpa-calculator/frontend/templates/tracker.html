@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}CGPA Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="college-tag">
+    <span>&#127891;</span> D.Y. Patil College of Engineering & Technology, Kolhapur
+  </div>
+  <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h2>Cumulative Grade Point Average (CGPA) Tracker</h2>
+      <p>
+        Monitor academic progress, inspect semester trends, and manage saved semester records.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <button type="button" class="btn btn-primary" onclick="scrollToCgpaCalculator()">
+        &#9889; Calculate CGPA
+      </button>
+      <button type="button" class="btn btn-secondary" onclick="openAddModal()">
+        + Add Semester Manually
+      </button>
+      <a href="{{ url_for('transcript_report') }}" class="btn btn-outline" target="_blank">
+        &#128438; Print Official Transcript
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Metrics Cards Summary -->
+<div class="grid-4" style="margin-bottom: 2rem;">
+  <div class="metric-card" id="cumulativeCgpaCard" style="transition: all 0.35s ease;">
+    <div class="metric-icon indigo">&#127942;</div>
+    <div>
+      <div style="display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap;">
+        <div class="metric-value" id="trackerCgpaDisplay">
+          {{ "%.2f"|format(cgpa_data.cgpa) }}
+        </div>
+        <span id="cgpaSavedBadge" class="badge" style="display: none; font-size: 0.72rem; padding: 0.2rem 0.5rem; background: #10b981; color: #ffffff; border-radius: 4px; font-weight: 700;">
+          &#10004; Saved
+        </span>
+      </div>
+      <div class="metric-label">Cumulative CGPA</div>
+    </div>
+  </div>
+
+  <div class="metric-card">
+    <div class="metric-icon green">&#128218;</div>
+    <div>
+      <div class="metric-value" id="trackerCreditsDisplay">
+        {{ "%.1f"|format(cgpa_data.total_credits) }}
+      </div>
+      <div class="metric-label">Total Credits Earned</div>
+    </div>
+  </div>
+
+  <div class="metric-card">
+    <div class="metric-icon amber">&#128202;</div>
+    <div>
+      <div class="metric-value" id="trackerPctDisplay">
+        {% if percentage > 0 %}{{ "%.2f"|format(percentage) }}%{% else %}0.0%{% endif %}
+      </div>
+      <div class="metric-label">Equivalent Percentage</div>
+    </div>
+  </div>
+
+  <div class="metric-card">
+    <div class="metric-icon cyan">&#127937;</div>
+    <div>
+      <div class="metric-value" id="trackerCountDisplay">
+        {{ semesters|length }}
+      </div>
+      <div class="metric-label">Completed Semesters</div>
+    </div>
+  </div>
+</div>
+
+<!-- Interactive Multi-Semester CGPA Calculator Card with Formula -->
+<div class="card" id="cgpaCalculatorSection" style="margin-bottom: 2rem; border-left: 5px solid var(--primary);">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+    <div>
+      <h3 class="card-title" style="margin-bottom: 0.25rem;">
+        <span>&#129518; Multi-Semester CGPA Calculator (3 or More Semesters)</span>
+      </h3>
+      <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 0;">
+        Second Year B.Tech CSE (Data Science) students can enter their Semester 1, Semester 2, Semester 3, and Semester 4 SGPA to calculate overall CGPA in seconds.
+      </p>
+    </div>
+    <span class="badge badge-A-plus" style="font-size: 0.82rem; padding: 0.4rem 0.8rem;">
+      Formula-Powered
+    </span>
+  </div>
+
+  <!-- Formula Callout Box -->
+  <div style="background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 1rem 1.25rem; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
+    <strong style="color: var(--text-main); font-size: 0.9rem; display: block; margin-bottom: 0.4rem;">
+      &#128208; CGPA Calculation Formula:
+    </strong>
+    <code style="display: block; padding: 0.65rem 0.9rem; background: var(--bg-card); border-radius: 6px; border: 1px solid var(--border-color); color: var(--primary); font-weight: 700; font-size: 0.95rem; margin-bottom: 0.5rem;">
+      CGPA = (Sem 1 SGPA + Sem 2 SGPA + Sem 3 SGPA + Sem 4 SGPA + ...) / (Total Semesters)
+    </code>
+    <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0;">
+      Simply enter your SGPA values for each semester separately below and click <strong>Calculate CGPA Now</strong>.
+    </p>
+  </div>
+
+  <!-- Dynamic CGPA Calculation Rows -->
+  <div class="table-responsive" style="margin-bottom: 1.25rem;">
+    <table class="table" id="cgpaCalcTable">
+      <thead>
+        <tr>
+          <th style="width: 55%;">Academic Period / Semester</th>
+          <th style="width: 33%;">SGPA / CGPA (0.00 - 10.00)</th>
+          <th style="width: 12%; text-align: center;">Action</th>
+        </tr>
+      </thead>
+      <tbody id="cgpaCalcBody">
+        <!-- Preset Row 1: Semester 1 -->
+        <tr class="cgpa-calc-row">
+          <td>
+            <input type="text" class="form-control cgpa-sem-name" placeholder="e.g. Semester 1 (FY)" value="Semester 1 (FY)" required>
+          </td>
+          <td>
+            <input type="text" inputmode="decimal" class="form-control cgpa-sem-sgpa" placeholder="e.g. 8.50" value="" required>
+          </td>
+          <td style="text-align: center;">
+            <button type="button" class="btn btn-danger-outline btn-sm" onclick="removeCgpaCalcRow(this)" title="Remove">&times;</button>
+          </td>
+        </tr>
+        <!-- Preset Row 2: Semester 2 -->
+        <tr class="cgpa-calc-row">
+          <td>
+            <input type="text" class="form-control cgpa-sem-name" placeholder="e.g. Semester 2 (FY)" value="Semester 2 (FY)" required>
+          </td>
+          <td>
+            <input type="text" inputmode="decimal" class="form-control cgpa-sem-sgpa" placeholder="e.g. 8.60" value="" required>
+          </td>
+          <td style="text-align: center;">
+            <button type="button" class="btn btn-danger-outline btn-sm" onclick="removeCgpaCalcRow(this)" title="Remove">&times;</button>
+          </td>
+        </tr>
+        <!-- Preset Row 3: Semester 3 -->
+        <tr class="cgpa-calc-row">
+          <td>
+            <input type="text" class="form-control cgpa-sem-name" placeholder="e.g. Semester 3 (SY)" value="Semester 3 (SY)" required>
+          </td>
+          <td>
+            <input type="text" inputmode="decimal" class="form-control cgpa-sem-sgpa" placeholder="e.g. 8.75" value="" required>
+          </td>
+          <td style="text-align: center;">
+            <button type="button" class="btn btn-danger-outline btn-sm" onclick="removeCgpaCalcRow(this)" title="Remove">&times;</button>
+          </td>
+        </tr>
+        <!-- Preset Row 4: Semester 4 -->
+        <tr class="cgpa-calc-row">
+          <td>
+            <input type="text" class="form-control cgpa-sem-name" placeholder="e.g. Semester 4 (SY)" value="Semester 4 (SY)" required>
+          </td>
+          <td>
+            <input type="text" inputmode="decimal" class="form-control cgpa-sem-sgpa" placeholder="e.g. 9.00" value="" required>
+          </td>
+          <td style="text-align: center;">
+            <button type="button" class="btn btn-danger-outline btn-sm" onclick="removeCgpaCalcRow(this)" title="Remove">&times;</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1.25rem;">
+    <button type="button" class="btn btn-secondary btn-sm" onclick="addCgpaCalcRow()">
+      + Add Another Semester
+    </button>
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      {% if semesters %}
+      <button type="button" class="btn btn-secondary btn-sm" onclick="loadSavedSemestersIntoCalculator()">
+        &#128229; Load My Saved Semesters
+      </button>
+      {% endif %}
+      <button type="button" class="btn btn-primary" onclick="calculateMultiSemesterCgpa()">
+        &#9889; Calculate CGPA Now &rarr;
+      </button>
+      <button type="button" class="btn btn-success" id="saveCgpaBtn" onclick="saveCalculatedCgpa()" style="background-color: #10b981; border-color: #10b981; color: white;">
+        &#128190; Save CGPA
+      </button>
+    </div>
+  </div>
+
+  <!-- Result Box for Multi-Semester CGPA -->
+  <div id="cgpaCalcResultBox" class="result-card" style="display: none; padding: 1.5rem; margin-top: 1rem;">
+    <div class="result-header">
+      <span>Calculated Cumulative Result</span>
+    </div>
+    <div class="result-score" id="cgpaCalcScore" style="font-size: 2.8rem;">
+      0.00
+    </div>
+    <div id="cgpaCalcDivision" style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">
+      First Class with Distinction
+    </div>
+    <div class="result-meta">
+      <div class="result-meta-item">
+        Semesters / Periods Count:
+        <span id="cgpaCalcCount">0</span>
+      </div>
+      <div class="result-meta-item">
+        Equivalent Percentage:
+        <span id="cgpaCalcPercentage">0.0%</span>
+      </div>
+    </div>
+    
+    <div style="margin-top: 1.5rem; display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
+      <button type="button" class="btn btn-success" id="saveCgpaResultBtn" onclick="saveCalculatedCgpa()" style="background-color: #10b981; border-color: #10b981; color: #ffffff; padding: 0.75rem 1.75rem; font-size: 1rem; font-weight: 700; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
+        &#128190; Save CGPA to Cumulative CGPA Card &uarr;
+      </button>
+    </div>
+    <div id="saveCgpaStatusMessage" style="display: none; margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 6px; font-weight: 600; font-size: 0.92rem; text-align: center;"></div>
+  </div>
+</div>
+
+
+<!-- Semesters Table Section -->
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+    <h3 class="card-title" style="margin-bottom: 0;">
+      <span>&#128203; Saved Semester History</span>
+    </h3>
+    <div style="display: flex; gap: 0.5rem;">
+      <a href="{{ url_for('calculator_view') }}" class="btn btn-secondary btn-sm">
+        &#9889; Calculate New Semester
+      </a>
+    </div>
+  </div>
+
+  <!-- Empty State if no semesters -->
+  <div id="trackerEmptyState" class="empty-state" style="{% if semesters %}display: none;{% endif %}">
+    <div class="empty-icon">&#128203;</div>
+    <h3>No Semesters Recorded Yet</h3>
+    <p>
+      You haven't saved any semester results to your tracker. Calculate your semester SGPA or click <strong>Add Semester Manually</strong> above.
+    </p>
+    <a href="{{ url_for('calculator_view') }}" class="btn btn-primary">
+      Go to SGPA Calculator &rarr;
+    </a>
+  </div>
+
+  <!-- Semesters List Table -->
+  <div id="trackerTableContainer" class="table-responsive" style="{% if not semesters %}display: none;{% endif %}">
+    <table class="table" id="semestersTable">
+      <thead>
+        <tr>
+          <th>Semester</th>
+          <th>Credits</th>
+          <th>SGPA</th>
+          <th>Grade Points</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="semestersTableBody">
+        {% for sem in semesters %}
+        <tr data-sem-id="{{ sem.id }}">
+          <td>
+            <strong>{{ sem.semester_name }}</strong>
+            <span style="display: block; font-size: 0.78rem; color: var(--text-muted);">
+              Saved: {{ sem.created_at.strftime('%d %b %Y') }}
+            </span>
+          </td>
+          <td>{{ "%.1f"|format(sem.credits) }}</td>
+          <td>
+            <span class="badge badge-A-plus" style="font-size: 0.9rem;">
+              {{ "%.2f"|format(sem.sgpa) }}
+            </span>
+          </td>
+          <td>{{ "%.1f"|format(sem.grade_points) }}</td>
+          <td>
+            <div style="display: flex; gap: 0.4rem;">
+              <a href="{{ url_for('semester_report', semester_id=sem.id) }}" class="btn btn-secondary btn-sm" title="View & Print Grade Sheet" target="_blank">
+                &#128438; Report
+              </a>
+              <button type="button" class="btn btn-secondary btn-sm" 
+                data-id="{{ sem.id }}" 
+                data-sem-no="{{ sem.semester_no }}" 
+                data-sem-name="{{ sem.semester_name }}" 
+                data-credits="{{ sem.credits }}" 
+                data-sgpa="{{ sem.sgpa }}"
+                onclick="openEditModalFromBtn(this)" 
+                title="Edit Semester">
+                &#9998; Edit
+              </button>
+              <button type="button" class="btn btn-danger-outline btn-sm" 
+                data-id="{{ sem.id }}" 
+                data-sem-name="{{ sem.semester_name }}"
+                onclick="confirmDeleteFromBtn(this)" 
+                title="Delete Semester">
+                &#128465; Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal: Add / Edit Semester -->
+<div class="modal-overlay" id="semesterModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modalTitle">Add Semester Record</h3>
+      <button type="button" class="modal-close" onclick="closeSemesterModal()">&times;</button>
+    </div>
+
+    <form id="semesterModalForm" onsubmit="handleSaveModalSemester(event)">
+      <input type="hidden" id="modalSemId" value="">
+
+      <div class="form-group">
+        <label for="modalSemNo" class="form-label">Semester Number (1 - 8) <span class="req">*</span></label>
+        <select id="modalSemNo" class="form-control" required onchange="autoUpdateSemName()">
+          <option value="1">Semester 1 (FY)</option>
+          <option value="2">Semester 2 (FY)</option>
+          <option value="3" selected>Semester 3 (SY)</option>
+          <option value="4">Semester 4 (SY)</option>
+          <option value="5">Semester 5 (TY)</option>
+          <option value="6">Semester 6 (TY)</option>
+          <option value="7">Semester 7 (Final Year)</option>
+          <option value="8">Semester 8 (Final Year)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="modalSemName" class="form-label">Semester Display Name</label>
+        <input type="text" id="modalSemName" class="form-control" placeholder="e.g. Semester 3 (SY)" required>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="modalCredits" class="form-label">Total Credits <span class="req">*</span></label>
+          <input type="number" id="modalCredits" class="form-control" min="1" max="40" step="0.5" placeholder="e.g. 20" required>
+        </div>
+
+        <div class="form-group">
+          <label for="modalSgpa" class="form-label">Achieved SGPA <span class="req">*</span></label>
+          <input type="number" id="modalSgpa" class="form-control" min="0" max="10" step="0.01" placeholder="e.g. 8.75" required>
+        </div>
+      </div>
+
+      <div id="modalErrorBox" class="alert alert-danger" style="display: none;"></div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+        <button type="button" class="btn btn-secondary" onclick="closeSemesterModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="modalSubmitBtn">Save Semester</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/tracker.js') }}"></script>
+{% endblock %}

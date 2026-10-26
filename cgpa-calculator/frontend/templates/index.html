@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Welcome Banner -->
+<div class="card" style="margin-bottom: 2rem; background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%); border-left: 5px solid var(--primary);">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+    <div>
+      <div class="college-tag">
+        <span>&#127891;</span> D.Y. Patil College of Engineering & Technology, Kolhapur
+      </div>
+      <h2 style="font-size: 1.75rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.5rem;">
+        Student Grade Calculator & CGPA Tracker
+      </h2>
+      <p style="color: var(--text-muted); max-width: 650px; font-size: 0.95rem;">
+        Developed as an engineering mini project for <strong>Second Year B.Tech CSE (Data Science)</strong>. 
+        Designed to calculate Semester Grade Point Average (SGPA) and Cumulative GPA (CGPA) accurately within a minute.
+      </p>
+    </div>
+    
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+      <a href="{{ url_for('calculator_view') }}" class="btn btn-primary btn-lg">
+        &#9889; Calculate SGPA Now
+      </a>
+      <a href="{{ url_for('tracker_view') }}" class="btn btn-outline btn-lg">
+        &#128200; View CGPA Tracker
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Student Overview Card (If logged in) -->
+{% if current_user and current_profile %}
+<div style="margin-bottom: 2rem;">
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h3 style="font-size: 1.3rem; font-weight: 700; color: var(--text-main);">
+          Academic Profile: {{ current_profile.name }}
+        </h3>
+        <p style="font-size: 0.88rem; color: var(--text-muted);">
+          Roll No: <strong>{{ current_profile.roll_no or '-' }}</strong> &bull; 
+          {{ current_profile.branch }}
+        </p>
+      </div>
+      <a href="{{ url_for('student_info_view') }}" class="btn btn-secondary btn-sm">
+        &#9998; Edit Profile Details
+      </a>
+    </div>
+
+    <!-- Quick Metrics Grid -->
+    <div class="grid-4">
+      <div class="metric-card">
+        <div class="metric-icon indigo">&#127942;</div>
+        <div>
+          <div class="metric-value">{{ "%.2f"|format(cgpa_data.cgpa) }}</div>
+          <div class="metric-label">Cumulative CGPA</div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon green">&#127891;</div>
+        <div>
+          <div class="metric-value">{{ "%.1f"|format(cgpa_data.total_credits) }}</div>
+          <div class="metric-label">Completed Credits</div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon amber">&#128202;</div>
+        <div>
+          <div class="metric-value">
+            {% if percentage > 0 %}{{ "%.2f"|format(percentage) }}%{% else %}N/A{% endif %}
+          </div>
+          <div class="metric-label">Equivalent % (9.5x)</div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon cyan">&#127937;</div>
+        <div>
+          <div class="metric-value" style="font-size: 1.15rem; font-weight: 700;">
+            {{ performance_class }}
+          </div>
+          <div class="metric-label">Academic Division</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% else %}
+<!-- Guest Banner -->
+<div class="card" style="margin-bottom: 2rem; background: var(--bg-secondary); text-align: center; padding: 2rem;">
+  <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">
+    Track Your Semesters Automatically!
+  </h3>
+  <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto 1.25rem auto; font-size: 0.92rem;">
+    Sign in to save your semester results, monitor grade trends on a line graph, and generate printable transcripts with your Roll Number & PRN.
+  </p>
+  <a href="{{ url_for('login_view') }}" class="btn btn-primary">
+    Sign In / Register Student Profile &rarr;
+  </a>
+</div>
+{% endif %}
+
+
+
+<!-- Calculation Explanation Box -->
+<div class="card" style="background: var(--bg-secondary);">
+  <h4 style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.75rem;">
+    &#128161; How are SGPA and CGPA Calculated?
+  </h4>
+  <div class="grid-2" style="font-size: 0.88rem; color: var(--text-muted);">
+    <div>
+      <p style="margin-bottom: 0.5rem;">
+        <strong style="color: var(--text-main);">SGPA Formula:</strong>
+      </p>
+      <code style="display: block; padding: 0.6rem; background: var(--bg-card); border-radius: var(--radius-sm); border: 1px solid var(--border-color); color: var(--primary);">
+        SGPA = &Sigma;(Subject Credits &times; Grade Points) / &Sigma;(Subject Credits)
+      </code>
+      <p style="margin-top: 0.5rem;">
+        Each grade letter is mapped to points (e.g. O = 10, A+ = 9, A = 8, B+ = 7, etc.).
+      </p>
+    </div>
+    <div>
+      <p style="margin-bottom: 0.5rem;">
+        <strong style="color: var(--text-main);">CGPA Formula:</strong>
+      </p>
+      <code style="display: block; padding: 0.6rem; background: var(--bg-card); border-radius: var(--radius-sm); border: 1px solid var(--border-color); color: var(--primary);">
+        CGPA = &Sigma;(Semester SGPA &times; Semester Credits) / &Sigma;(Semester Credits)
+      </code>
+      <p style="margin-top: 0.5rem;">
+        CGPA is the credit-weighted average across all completed semesters in the degree.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

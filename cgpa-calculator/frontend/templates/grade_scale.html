@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Grade Scale & Conversion{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="college-tag">
+    <span>&#127891;</span> D.Y. Patil College of Engineering & Technology, Kolhapur
+  </div>
+  <h2>10-Point Credit Grade Scale & Conversion Standards</h2>
+  <p>
+    Academic grading reference conforming to autonomous engineering university guidelines for B.Tech CSE (Data Science).
+  </p>
+</div>
+
+<div class="grid-2">
+  <!-- Grade Scale Table -->
+  <div class="card">
+    <h3 class="card-title">
+      <span>&#128218; Letter Grade Point System</span>
+    </h3>
+
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Grade</th>
+            <th>Grade Points</th>
+            <th>Marks Range</th>
+            <th>Qualitative Performance</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in grades %}
+          <tr>
+            <td>
+              <span class="badge badge-{{ item.grade|replace('+', '-plus') }}" style="font-size: 0.95rem; min-width: 32px; justify-content: center;">
+                {{ item.grade }}
+              </span>
+            </td>
+            <td>
+              <strong style="color: var(--primary); font-size: 1.05rem;">
+                {{ item.points }}
+              </strong>
+            </td>
+            <td>{{ item.marks_range }}</td>
+            <td style="font-size: 0.85rem; color: var(--text-muted);">
+              {{ item.description }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top: 1.25rem; font-size: 0.82rem; color: var(--text-muted);">
+      <p><strong>Passing Requirement:</strong> A student must obtain at least a 'P' grade (4.0 Grade Point) in individual heads of passing.</p>
+    </div>
+  </div>
+
+  <!-- CGPA to Percentage Conversion & Live Calculator -->
+  <div>
+    <!-- Live Converter Card -->
+    <div class="card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, rgba(79, 70, 229, 0.05) 0%, rgba(59, 130, 246, 0.05) 100%); border-left: 5px solid var(--primary);">
+      <h3 class="card-title">
+        <span>&#129518; Live CGPA to Percentage Converter</span>
+      </h3>
+
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1.25rem;">
+        Calculate equivalent percentage from your CGPA using the official AICTE / University multiplier formula.
+      </p>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="calcCgpaInput" class="form-label">Enter CGPA (0 - 10)</label>
+          <input 
+            type="number" 
+            id="calcCgpaInput" 
+            class="form-control" 
+            min="0" 
+            max="10" 
+            step="0.01" 
+            value="8.25"
+            oninput="computeLivePercentage()"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="calcMultiplierInput" class="form-label">
+            Multiplier Formula <span style="font-size: 0.75rem; color: var(--text-muted);">(Editable)</span>
+          </label>
+          <input 
+            type="number" 
+            id="calcMultiplierInput" 
+            class="form-control" 
+            min="1" 
+            max="20" 
+            step="0.1" 
+            value="9.5"
+            oninput="computeLivePercentage()"
+          >
+        </div>
+      </div>
+
+      <!-- Live Result Display -->
+      <div style="background: var(--bg-card); border-radius: var(--radius-md); padding: 1.25rem; text-align: center; border: 1px solid var(--border-color); margin-top: 0.5rem;">
+        <span style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
+          Calculated Percentage:
+        </span>
+        <div id="livePctResult" style="font-size: 2.75rem; font-weight: 800; color: var(--primary); line-height: 1;">
+          78.38%
+        </div>
+        <div id="liveClassResult" style="font-size: 0.95rem; font-weight: 600; color: var(--text-main); margin-top: 0.4rem;">
+          First Class with Distinction
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.35rem;" id="formulaExplain">
+          Formula: Percentage = 8.25 &times; 9.5
+        </div>
+      </div>
+    </div>
+
+    <!-- Official Regulations Note -->
+    <div class="card">
+      <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.75rem;">
+        &#128220; Conversion Regulations & Classes
+      </h4>
+
+      <ul style="padding-left: 1.25rem; font-size: 0.85rem; color: var(--text-muted); line-height: 1.7;">
+        <li>
+          <strong style="color: var(--text-main);">AICTE / DYPCET Standard:</strong> Percentage = CGPA &times; 9.5 (Default).
+        </li>
+        <li>
+          <strong style="color: var(--text-main);">Alternative Shivaji University Formula:</strong> Percentage = (CGPA - 0.75) &times; 10 (You can adjust multiplier above).
+        </li>
+        <li>
+          <strong style="color: var(--text-main);">CGPA &ge; 7.75:</strong> First Class with Distinction
+        </li>
+        <li>
+          <strong style="color: var(--text-main);">6.75 &le; CGPA &lt; 7.75:</strong> First Class
+        </li>
+        <li>
+          <strong style="color: var(--text-main);">5.75 &le; CGPA &lt; 6.75:</strong> Higher Second Class
+        </li>
+        <li>
+          <strong style="color: var(--text-main);">5.00 &le; CGPA &lt; 5.75:</strong> Second Class
+        </li>
+        <li>
+          <strong style="color: var(--text-main);">4.00 &le; CGPA &lt; 5.00:</strong> Pass Class
+        </li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function computeLivePercentage() {
+  const cgpaInput = parseFloat(document.getElementById("calcCgpaInput").value);
+  const multInput = parseFloat(document.getElementById("calcMultiplierInput").value);
+
+  const pctEl = document.getElementById("livePctResult");
+  const classEl = document.getElementById("liveClassResult");
+  const explainEl = document.getElementById("formulaExplain");
+
+  if (isNaN(cgpaInput) || isNaN(multInput) || cgpaInput < 0 || multInput <= 0) {
+    pctEl.textContent = "---";
+    classEl.textContent = "Invalid input";
+    return;
+  }
+
+  const rawPct = Math.min(100.0, cgpaInput * multInput);
+  const pct = rawPct.toFixed(2);
+  pctEl.textContent = `${pct}%`;
+
+  let perf = "Failed / Needs Improvement";
+  if (cgpaInput >= 7.75) perf = "First Class with Distinction";
+  else if (cgpaInput >= 6.75) perf = "First Class";
+  else if (cgpaInput >= 5.75) perf = "Higher Second Class";
+  else if (cgpaInput >= 5.00) perf = "Second Class";
+  else if (cgpaInput >= 4.00) perf = "Pass Class";
+
+  classEl.textContent = perf;
+  explainEl.innerHTML = `Formula: Percentage = ${cgpaInput.toFixed(2)} &times; ${multInput.toFixed(1)}`;
+}
+
+document.addEventListener("DOMContentLoaded", computeLivePercentage);
+</script>
+{% endblock %}

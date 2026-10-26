@@ -1,0 +1,350 @@
+{% extends "base.html" %}
+
+{% block title %}SGPA & CGPA Calculator{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="college-tag">
+    <span>&#127891;</span> D.Y. Patil College of Engineering &amp; Technology, Kolhapur
+  </div>
+  <h2>Semester &amp; Cumulative Grade Point Average Calculator</h2>
+  <p>
+    Calculate semester SGPAs, academic year credit-weighted averages, and overall degree CGPA.
+  </p>
+</div>
+
+<!-- Two Main Navigation Tabs -->
+<div class="calc-nav-container">
+  <button type="button" class="calc-nav-tab active" id="tabBtnDypcet" onclick="switchMainTab('dypcet')">
+    <div class="tab-title">
+      <span>&#127891;</span> DYPCET Data Science
+    </div>
+    <div class="tab-desc">
+      Only for DYPCET B.Tech Data Science students (2nd, 3rd &amp; 4th Year)
+    </div>
+  </button>
+
+  <button type="button" class="calc-nav-tab" id="tabBtnGeneral" onclick="switchMainTab('general')">
+    <div class="tab-title">
+      <span>&#127760;</span> General Calculator
+    </div>
+    <div class="tab-desc">
+      For any student or user &bull; Add semesters step-by-step
+    </div>
+  </button>
+</div>
+
+<!-- ========================================================================= -->
+<!-- TAB 1: DYPCET DATA SCIENCE MODE                                           -->
+<!-- ========================================================================= -->
+<div id="tabContentDypcet">
+  <!-- Year Selector Bar -->
+  <div class="year-selector-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+        <label for="dypcetYearSelect" style="font-weight: 700; color: var(--text-main); font-size: 0.98rem; margin-bottom: 0;">
+          Select Engineering Year:
+        </label>
+        <select id="dypcetYearSelect" class="form-control" style="width: auto; min-width: 250px; font-weight: 600; font-size: 0.95rem;" onchange="onDypcetYearChange()">
+          <option value="second_year" selected>Second Year (SY) &bull; Sem 3 &amp; Sem 4</option>
+          <option value="third_year">Third Year (TY) &bull; Sem 5 &amp; Sem 6</option>
+          <option value="fourth_year">Fourth Year (Final Year) &bull; Sem 7 &amp; Sem 8</option>
+        </select>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="resetDypcetGrades()" title="Reset all selected grades">
+          &#129529; Reset Grades
+        </button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="calculateDypcetYearResult()">
+          &#9889; Calculate Year Result
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Container for the Two Semesters of the Selected Year -->
+  <div id="dypcetSemestersContainer">
+    <!-- Populated dynamically via JS: Sem A section + Sem B section -->
+  </div>
+
+  <!-- Year & Cumulative Result Card -->
+  <div id="dypcetYearResultCard" class="year-result-card" style="display: none;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+      <div>
+        <span class="badge badge-A-plus" style="font-size: 0.8rem; padding: 0.35rem 0.75rem; text-transform: uppercase;">
+          Annual Credit-Weighted Performance
+        </span>
+        <h3 style="font-size: 1.45rem; font-weight: 800; color: var(--text-main); margin-top: 0.35rem; margin-bottom: 0;" id="yearResultHeading">
+          Second Year Result Summary
+        </h3>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 0.85rem; color: var(--text-muted);">Credit-Weighted Year SGPA</div>
+        <div style="font-size: 2.5rem; font-weight: 900; color: var(--primary); line-height: 1;" id="yearResultSgpaDisplay">
+          0.00
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Metrics Grid -->
+    <div class="grid-4" style="margin-bottom: 1.5rem;">
+      <div class="metric-card" style="background: var(--bg-card);">
+        <div class="metric-icon indigo">&#128218;</div>
+        <div>
+          <div class="metric-value" id="yearSem1SgpaDisplay">0.00</div>
+          <div class="metric-label" id="yearSem1LabelDisplay">Sem 3 SGPA</div>
+        </div>
+      </div>
+
+      <div class="metric-card" style="background: var(--bg-card);">
+        <div class="metric-icon green">&#128218;</div>
+        <div>
+          <div class="metric-value" id="yearSem2SgpaDisplay">0.00</div>
+          <div class="metric-label" id="yearSem2LabelDisplay">Sem 4 SGPA</div>
+        </div>
+      </div>
+
+      <div class="metric-card" style="background: var(--bg-card);">
+        <div class="metric-icon amber">&#128202;</div>
+        <div>
+          <div class="metric-value" id="yearPercentageDisplay">0.00%</div>
+          <div class="metric-label">Year % (9.5x)</div>
+        </div>
+      </div>
+
+      <div class="metric-card" style="background: var(--bg-card);">
+        <div class="metric-icon cyan">&#127942;</div>
+        <div>
+          <div class="metric-value" style="font-size: 1.05rem;" id="yearDivisionDisplay">Distinction</div>
+          <div class="metric-label">Academic Division</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Save & Print Buttons -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+      <div id="dypcetSaveStatus" style="font-size: 0.88rem; font-weight: 600;"></div>
+      <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+        {% if current_user %}
+        <button type="button" class="btn btn-success" id="btnSaveBothSemesters" onclick="saveDypcetYearSemesters()" style="background-color: #10b981; border-color: #10b981; color: #fff;">
+          &#128190; Save Both Semesters to Tracker
+        </button>
+        {% else %}
+        <a href="{{ url_for('login_view') }}" class="btn btn-secondary">
+          &#128190; Login to Save in Tracker
+        </a>
+        {% endif %}
+        <button type="button" class="btn btn-outline" onclick="printDypcetYearReport()">
+          &#128438; Print / Save PDF Marksheet
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- TAB 2: GENERAL MODE (FOR ANY USER / ANY COLLEGE)                         -->
+<!-- ========================================================================= -->
+<div id="tabContentGeneral" style="display: none;">
+  <!-- Semester Navigation Tabs -->
+  <div class="card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem; background: var(--bg-secondary);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <strong style="color: var(--text-main); font-size: 0.95rem; display: block;">&#128197; Manage General Semesters:</strong>
+        <span style="font-size: 0.84rem; color: var(--text-muted);">
+          Add your semesters one by one, enter subjects and grades, and monitor overall CGPA.
+        </span>
+      </div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button type="button" class="btn btn-primary btn-sm" onclick="addNewGeneralSemester()">
+          + Add Next Semester
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="resetGeneralCalculator()">
+          &#129529; Reset All
+        </button>
+      </div>
+    </div>
+
+    <!-- Semester Pills Bar -->
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem;" id="generalSemPillsContainer">
+      <!-- Populated via JS -->
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- General Semester Subject Input Card -->
+    <div class="card" style="grid-column: span 1;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <h3 class="card-title" style="margin-bottom: 0.2rem;" id="generalActiveSemTitle">
+            Semester 1 Subjects
+          </h3>
+          <span id="generalLiveCreditsBadge" class="badge badge-A-plus" style="font-size: 0.8rem; font-weight: 600;">
+            0 Courses &bull; 0 Credits
+          </span>
+        </div>
+        <div style="display: flex; gap: 0.4rem;">
+          <button type="button" class="btn btn-primary btn-sm" onclick="addGeneralSubjectRow()">
+            + Add Subject Row
+          </button>
+        </div>
+      </div>
+
+      <!-- General Subjects Table -->
+      <div class="table-responsive" style="margin-bottom: 1.25rem; max-height: 480px; overflow-y: auto;">
+        <table class="table" id="generalSubjectsTable" style="min-width: 620px;">
+          <thead>
+            <tr>
+              <th style="width: 32%;">Course / Subject Name</th>
+              <th style="width: 14%; text-align: center;">Credits</th>
+              <th style="width: 16%; text-align: center;">Obtained Marks</th>
+              <th style="width: 14%; text-align: center;">Total Marks</th>
+              <th style="width: 14%; text-align: center;">Grade</th>
+              <th style="width: 10%; text-align: center;">Action</th>
+            </tr>
+          </thead>
+          <tbody id="generalSubjectsBody">
+            <!-- Dynamic rows -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Error box -->
+      <div id="generalErrorBox" class="alert alert-danger" style="display: none; margin-bottom: 1rem;">
+        <span id="generalErrorMessage"></span>
+        <button class="alert-close" onclick="this.parentElement.style.display='none';">&times;</button>
+      </div>
+
+      <!-- Action Button -->
+      <button type="button" class="btn btn-primary btn-block btn-lg" onclick="calculateGeneralSemesterSgpa()">
+        Calculate Semester SGPA &rarr;
+      </button>
+    </div>
+
+    <!-- General Semester Result & Running Summary Card -->
+    <div class="card" style="grid-column: span 1;">
+      <h3 class="card-title" style="margin-bottom: 1rem;">
+        <span>&#128202;</span> Semester Breakdown &amp; Overall CGPA
+      </h3>
+
+      <!-- Current Semester Result Pill -->
+      <div id="generalSemResultBox" class="result-card" style="margin-bottom: 1.5rem; display: none;">
+        <div class="result-header">
+          <span id="generalResultSemName">Semester 1</span> &bull; SGPA Result
+        </div>
+        <div class="result-score" id="generalResultSgpaDisplay">
+          0.00
+        </div>
+        <div id="generalResultDivision" style="font-size: 1rem; font-weight: 700; margin-bottom: 1rem;">
+          First Class with Distinction
+        </div>
+        <div class="result-meta">
+          <div class="result-meta-item">
+            Credits: <span id="generalResultCreditsDisplay">0</span>
+          </div>
+          <div class="result-meta-item">
+            Grade Points: <span id="generalResultPointsDisplay">0</span>
+          </div>
+          <div class="result-meta-item">
+            Equivalent %: <span id="generalResultPctDisplay">0.0%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty state when not calculated yet -->
+      <div id="generalEmptyState" style="text-align: center; padding: 2rem 1rem; color: var(--text-muted);">
+        <div style="font-size: 2.8rem; margin-bottom: 0.5rem;">&#129518;</div>
+        <p style="font-size: 0.92rem; margin-bottom: 0;">
+          Add subjects on the left and click <strong>Calculate Semester SGPA</strong>.
+        </p>
+      </div>
+
+      <!-- Semester-wise Performance Table -->
+      <div style="margin-top: 1.5rem;">
+        <h4 style="font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-main);">
+          Added Semesters Summary
+        </h4>
+        <div class="table-responsive">
+          <table class="table" style="font-size: 0.88rem;">
+            <thead>
+              <tr>
+                <th>Semester</th>
+                <th style="text-align: center;">Credits</th>
+                <th style="text-align: center;">SGPA</th>
+                <th style="text-align: center;">Grade Points</th>
+                <th style="text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="generalSummaryTableBody">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Cumulative CGPA Banner -->
+      <div style="margin-top: 1.5rem; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--border-color); padding: 1rem 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Overall Cumulative CGPA</span>
+            <div style="font-size: 1.85rem; font-weight: 800; color: var(--primary); line-height: 1.1;" id="generalCumulativeCgpaDisplay">
+              0.00
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+              Total Credits: <strong id="generalTotalCreditsDisplay">0.0</strong> &bull; 
+              Percentage: <strong id="generalTotalPctDisplay">0.0%</strong>
+            </div>
+          </div>
+          {% if current_user %}
+          <button type="button" class="btn btn-success btn-sm" onclick="saveAllGeneralSemestersToTracker()" style="background-color: #10b981; border-color: #10b981; color: #fff;">
+            &#128190; Save All to Tracker
+          </button>
+          {% endif %}
+        </div>
+        <div id="generalSaveFeedback" style="display: none; margin-top: 0.75rem; font-size: 0.85rem;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Printable Grade Sheet Component (Visible only when printing) -->
+<div id="printableResultContainer" class="printable-header">
+  <h2>D.Y. Patil College of Engineering &amp; Technology, Kolhapur</h2>
+  <p>Department of Computer Science &amp; Engineering (Data Science)</p>
+  <p style="font-weight: 700; margin-top: 4px;" id="printReportTitle">OFFICIAL ACADEMIC GRADE REPORT</p>
+  <div style="margin: 15px 0; text-align: left; font-size: 10pt; line-height: 1.6;">
+    <p><strong>Student Name:</strong> {{ current_profile.name if current_profile else 'Student' }}</p>
+    <p><strong>Roll No:</strong> {{ current_profile.roll_no if current_profile and current_profile.roll_no else 'N/A' }}</p>
+    <p><strong>Branch:</strong> B.Tech CSE (Data Science) | <strong>Academic Period:</strong> <span id="printSemName">Academic Year</span></p>
+  </div>
+  <table class="table" id="printBreakdownTable" style="margin-top: 15px;">
+    <thead>
+      <tr>
+        <th>Course Name</th>
+        <th style="text-align: center;">Credits</th>
+        <th style="text-align: center;">Marks</th>
+        <th style="text-align: center;">Grade</th>
+        <th style="text-align: center;">Grade Point</th>
+        <th style="text-align: right;">Credit Points</th>
+      </tr>
+    </thead>
+    <tbody id="printBreakdownBody"></tbody>
+  </table>
+  <div style="margin-top: 15px; text-align: right; font-weight: bold; font-size: 11pt;">
+    <p>Total Credits: <span id="printCredits">0</span> | Total Points: <span id="printPoints">0</span> | Final SGPA / CGPA: <span id="printSgpa">0.00</span></p>
+  </div>
+  <div class="signatures-row">
+    <div class="signature-box">Class Coordinator</div>
+    <div class="signature-box">Head of Department (CSE-DS)</div>
+    <div class="signature-box">Dean / Principal</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Load Syllabus Configuration -->
+<script src="{{ url_for('static', filename='js/syllabus.js') }}"></script>
+<!-- Load Dual-Mode Calculator Logic -->
+<script src="{{ url_for('static', filename='js/calculator.js') }}"></script>
+{% endblock %}

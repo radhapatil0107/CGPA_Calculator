@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}Target Plan{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="college-tag">
+    <span>&#127891;</span> D.Y. Patil College of Engineering & Technology, Kolhapur
+  </div>
+  <h2>Target CGPA Strategy & Planner</h2>
+  <p>
+    Calculate the exact average SGPA you must achieve in your remaining semesters to secure your target degree CGPA.
+  </p>
+</div>
+
+<div class="grid-2">
+  <!-- Target Calculator Input Form -->
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
+      <h3 class="card-title" style="margin-bottom: 0;">
+        <span>&#127919; Plan Your Degree Goal</span>
+      </h3>
+      {% if tracker_cgpa > 0 %}
+      <button type="button" class="btn btn-secondary btn-sm" onclick="autofillFromTracker({{ tracker_cgpa }}, {{ tracker_credits }})">
+        &#9889; Pull from My Tracker ({{ "%.2f"|format(tracker_cgpa) }})
+      </button>
+      {% endif %}
+    </div>
+
+    <form id="targetPlanForm" onsubmit="handleCalculateTarget(event)">
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="currentCgpaInput" class="form-label">
+            Current CGPA <span class="req">*</span>
+          </label>
+          <input 
+            type="number" 
+            id="currentCgpaInput" 
+            class="form-control" 
+            min="0" 
+            max="10" 
+            step="0.01" 
+            placeholder="e.g. 7.80" 
+            value="{% if tracker_cgpa > 0 %}{{ '%.2f'|format(tracker_cgpa) }}{% else %}7.50{% endif %}"
+            required
+          >
+          <div class="invalid-feedback" id="currentCgpaError" style="display: none;">Must be between 0 and 10.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="completedCreditsInput" class="form-label">
+            Completed Credits <span class="req">*</span>
+          </label>
+          <input 
+            type="number" 
+            id="completedCreditsInput" 
+            class="form-control" 
+            min="0" 
+            max="200" 
+            step="0.5" 
+            placeholder="e.g. 38" 
+            value="{% if tracker_credits > 0 %}{{ '%.1f'|format(tracker_credits) }}{% else %}38.0{% endif %}"
+            required
+          >
+          <div class="invalid-feedback" id="completedCreditsError" style="display: none;">Credits cannot be negative.</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="targetCgpaInput" class="form-label">
+            Desired Target CGPA <span class="req">*</span>
+          </label>
+          <input 
+            type="number" 
+            id="targetCgpaInput" 
+            class="form-control" 
+            min="0" 
+            max="10" 
+            step="0.01" 
+            placeholder="e.g. 8.50" 
+            value="8.50" 
+            required
+          >
+          <div class="invalid-feedback" id="targetCgpaError" style="display: none;">Must be between 0 and 10.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="remainingCreditsInput" class="form-label">
+            Remaining Credits to Graduate <span class="req">*</span>
+          </label>
+          <input 
+            type="number" 
+            id="remainingCreditsInput" 
+            class="form-control" 
+            min="1" 
+            max="160" 
+            step="0.5" 
+            placeholder="e.g. 80" 
+            value="80.0" 
+            required
+          >
+          <div class="invalid-feedback" id="remainingCreditsError" style="display: none;">Must be greater than 0.</div>
+        </div>
+      </div>
+
+      <!-- Quick Target Presets for Engineering Students -->
+      <div style="margin-bottom: 1.25rem; background: var(--bg-secondary); padding: 0.85rem; border-radius: var(--radius-sm);">
+        <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 0.4rem;">
+          Popular Engineering Targets:
+        </span>
+        <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="setTargetPreset(7.75)">
+            7.75 (Distinction Cutoff)
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="setTargetPreset(8.00)">
+            8.00 (Tier-1 Placements)
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="setTargetPreset(8.50)">
+            8.50 (Top MNCs / MS Abroad)
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="setTargetPreset(9.00)">
+            9.00 (Gold Medalist)
+          </button>
+        </div>
+      </div>
+
+      <div id="targetErrorAlert" class="alert alert-danger" style="display: none;">
+        <span id="targetErrorText"></span>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block btn-lg" id="targetSubmitBtn">
+        <span id="targetSpinner" class="spinner" style="display: none; margin-right: 0.4rem;"></span>
+        Calculate Required SGPA &rarr;
+      </button>
+    </form>
+  </div>
+
+  <!-- Target Results & Strategy Card -->
+  <div>
+    <!-- Results Card -->
+    <div id="targetResultCard" class="card" style="display: none; border-left: 6px solid var(--primary);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <span style="font-size: 0.82rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.05em;">
+          Planning Result
+        </span>
+        <span id="targetStatusBadge" class="badge badge-A-plus" style="font-size: 0.85rem;">
+          Achievable
+        </span>
+      </div>
+
+      <div style="text-align: center; padding: 1.25rem 0 0.75rem 0;">
+        <div style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 0.25rem;">
+          Required Average SGPA in Remaining Semesters:
+        </div>
+        <div id="targetRequiredSgpa" style="font-size: 3.5rem; font-weight: 800; color: var(--primary); line-height: 1;">
+          8.98
+        </div>
+        <div id="targetScaleNotice" style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.35rem;">
+          Out of Maximum 10.00
+        </div>
+      </div>
+
+      <!-- Visual Comparison Bar -->
+      <div style="margin: 1.25rem 0; padding: 0.85rem; background: var(--bg-secondary); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+        <div style="display: flex; justify-content: space-between; font-size: 0.82rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-muted);">
+          <span>Current: <strong id="barCurrentVal" style="color: var(--text-main);">7.50</strong></span>
+          <span>Target: <strong id="barTargetVal" style="color: var(--primary);">8.50</strong></span>
+          <span>Max: <strong>10.00</strong></span>
+        </div>
+        <div style="height: 10px; background: var(--border-color); border-radius: 9999px; overflow: hidden; position: relative;">
+          <div id="targetProgressBarGoal" style="height: 100%; width: 85%; background: var(--primary); position: absolute; left: 0; top: 0; border-radius: 9999px; transition: width 0.5s ease;"></div>
+          <div id="targetProgressBarCurrent" style="height: 100%; width: 75%; background: #10b981; position: absolute; left: 0; top: 0; border-radius: 9999px; transition: width 0.5s ease;"></div>
+        </div>
+        <div style="display: flex; gap: 1rem; margin-top: 0.4rem; font-size: 0.72rem; color: var(--text-muted);">
+          <span style="display: flex; align-items: center; gap: 0.3rem;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span> Completed CGPA</span>
+          <span style="display: flex; align-items: center; gap: 0.3rem;"><span style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary); display: inline-block;"></span> Target Goal</span>
+        </div>
+      </div>
+
+      <div id="targetMessageAlert" class="alert alert-info" style="margin-bottom: 1.25rem;">
+        <span id="targetMessageText"></span>
+      </div>
+
+      <!-- Strategy Roadmap -->
+      <div style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: 1rem; font-size: 0.88rem;">
+        <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-main);">
+          &#128161; Academic Strategy for CSE (Data Science):
+        </h4>
+        <ul id="strategyPoints" style="padding-left: 1.25rem; color: var(--text-muted); line-height: 1.6;">
+          <li>Focus on high-credit core subjects (Mathematics, DBMS, DSA: 4 credits each).</li>
+          <li>Ensure perfect 10/10 (O grade) in Practical Labs & Mini-Projects.</li>
+          <li>Target continuous assessment tests (ISE / MSE) to secure maximum internal marks.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Empty State for Target -->
+    <div id="targetEmptyCard" class="card" style="text-align: center; padding: 3rem 1.5rem;">
+      <div style="font-size: 3.5rem; color: var(--text-subtle); margin-bottom: 1rem;">&#127919;</div>
+      <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem;">
+        Set Your Academic Target
+      </h3>
+      <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 380px; margin: 0 auto;">
+        Enter your completed credits and target CGPA on the left to see what SGPA you need to achieve your goals!
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/target.js') }}"></script>
+{% endblock %}

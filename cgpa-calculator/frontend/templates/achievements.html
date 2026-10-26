@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Achievements & Leaderboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="college-tag">
+    <span>🏆</span> D.Y. Patil College of Engineering & Technology, Kolhapur
+  </div>
+  <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h2>Student Achievements & Honor Roll</h2>
+      <p>
+        Academic leaderboard ranking all students across the department by Cumulative GPA (CGPA) in descending order.
+      </p>
+    </div>
+    <div>
+      <span class="badge badge-A-plus" style="font-size: 0.9rem; padding: 0.5rem 1rem;">
+        Total Students: {{ leaderboard|length }}
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- Top 3 Podium Cards (if enough students) -->
+{% if leaderboard|length >= 3 and leaderboard[0].cgpa > 0 %}
+<div class="grid-3" style="margin-bottom: 2rem;">
+  <!-- Rank 2 -->
+  <div class="card" style="text-align: center; border-top: 4px solid #94a3b8; order: 1;">
+    <div style="font-size: 2.2rem; margin-bottom: 0.25rem;">🥈</div>
+    <span class="badge" style="background: #e2e8f0; color: #334155; font-weight: 700; margin-bottom: 0.5rem;">Rank #2</span>
+    <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.25rem;">{{ leaderboard[1].name }}</h3>
+    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">Roll: {{ leaderboard[1].roll_no }}</p>
+    <div style="font-size: 2rem; font-weight: 800; color: var(--primary);">{{ "%.2f"|format(leaderboard[1].cgpa) }}</div>
+    <span style="font-size: 0.8rem; color: var(--text-muted);">CGPA ({{ "%.1f"|format(leaderboard[1].total_credits) }} credits)</span>
+  </div>
+
+  <!-- Rank 1 (Gold) -->
+  <div class="card" style="text-align: center; border-top: 4px solid #f59e0b; background: linear-gradient(180deg, rgba(245, 158, 11, 0.08) 0%, var(--bg-card) 60%); transform: translateY(-6px); box-shadow: var(--shadow-md); order: 2;">
+    <div style="font-size: 2.6rem; margin-bottom: 0.25rem;">👑 🥇</div>
+    <span class="badge badge-C" style="background: #fef3c7; color: #92400e; font-weight: 700; margin-bottom: 0.5rem;">Department Topper #1</span>
+    <h3 style="font-size: 1.35rem; font-weight: 800; margin-bottom: 0.25rem;">{{ leaderboard[0].name }}</h3>
+    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">Roll: {{ leaderboard[0].roll_no }} &bull; {{ leaderboard[0].branch }}</p>
+    <div style="font-size: 2.4rem; font-weight: 800; color: #b45309;">{{ "%.2f"|format(leaderboard[0].cgpa) }}</div>
+    <span style="font-size: 0.85rem; color: var(--text-muted);">CGPA &bull; {{ "%.2f"|format(leaderboard[0].percentage) }}%</span>
+  </div>
+
+  <!-- Rank 3 -->
+  <div class="card" style="text-align: center; border-top: 4px solid #b45309; order: 3;">
+    <div style="font-size: 2.2rem; margin-bottom: 0.25rem;">🥉</div>
+    <span class="badge" style="background: #ffedd5; color: #9a3412; font-weight: 700; margin-bottom: 0.5rem;">Rank #3</span>
+    <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.25rem;">{{ leaderboard[2].name }}</h3>
+    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">Roll: {{ leaderboard[2].roll_no }}</p>
+    <div style="font-size: 2rem; font-weight: 800; color: var(--primary);">{{ "%.2f"|format(leaderboard[2].cgpa) }}</div>
+    <span style="font-size: 0.8rem; color: var(--text-muted);">CGPA ({{ "%.1f"|format(leaderboard[2].total_credits) }} credits)</span>
+  </div>
+</div>
+{% endif %}
+
+<!-- Full Department Leaderboard Table -->
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
+    <h3 class="card-title" style="margin-bottom: 0;">
+      <span>📊 Complete CGPA Rankings (Descending Order)</span>
+    </h3>
+    <span style="font-size: 0.85rem; color: var(--text-muted);">
+      Sorted by Cumulative Grade Point Average
+    </span>
+  </div>
+
+  {% if leaderboard %}
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th style="width: 70px; text-align: center;">Rank</th>
+          <th>Student Details</th>
+          <th style="text-align: center;">Roll No</th>
+          <th style="text-align: center;">Completed Credits</th>
+          <th style="text-align: center;">Equivalent %</th>
+          <th style="text-align: right; width: 100px;">CGPA</th>
+          <th style="text-align: center; width: 140px;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for student in leaderboard %}
+        <tr {% if current_user and student.user_id == current_user.id %}style="background-color: var(--primary-light); font-weight: 600;"{% endif %}>
+          <td style="text-align: center;">
+            {% if student.rank == 1 and student.cgpa > 0 %}
+              <span style="font-size: 1.25rem;">🥇</span> <strong>1</strong>
+            {% elif student.rank == 2 and student.cgpa > 0 %}
+              <span style="font-size: 1.25rem;">🥈</span> <strong>2</strong>
+            {% elif student.rank == 3 and student.cgpa > 0 %}
+              <span style="font-size: 1.25rem;">🥉</span> <strong>3</strong>
+            {% else %}
+              <span style="display: inline-block; width: 28px; height: 28px; line-height: 28px; border-radius: 50%; background: var(--bg-secondary); color: var(--text-muted); font-weight: 700; font-size: 0.82rem;">
+                {{ student.rank }}
+              </span>
+            {% endif %}
+          </td>
+          <td>
+            <strong>{{ student.name }}</strong>
+            {% if current_user and student.user_id == current_user.id %}
+              <span class="badge badge-A-plus" style="font-size: 0.72rem; margin-left: 0.35rem;">YOU</span>
+            {% endif %}
+            <span style="display: block; font-size: 0.78rem; color: var(--text-muted);">
+              {{ student.branch }}
+            </span>
+          </td>
+          <td style="text-align: center;">{{ student.roll_no }}</td>
+          <td style="text-align: center;">{{ "%.1f"|format(student.total_credits) }}</td>
+          <td style="text-align: center;">
+            {% if student.percentage > 0 %}
+              {{ "%.2f"|format(student.percentage) }}%
+            {% else %}
+              -
+            {% endif %}
+          </td>
+          <td style="text-align: right;">
+            <span class="badge {% if student.cgpa >= 8.5 %}badge-O{% elif student.cgpa >= 7.5 %}badge-A-plus{% else %}badge-B-plus{% endif %}" style="font-size: 1.05rem; padding: 0.35rem 0.75rem; font-weight: 800;">
+              {{ "%.2f"|format(student.cgpa) }}
+            </span>
+          </td>
+          <td style="text-align: center;">
+            <div style="display: flex; gap: 0.35rem; justify-content: center; flex-wrap: wrap;">
+              {% if student.semesters_count > 0 %}
+              <button type="button" class="btn btn-secondary btn-sm" style="font-size: 0.76rem; padding: 0.25rem 0.5rem;" onclick="clearUserAchievement({{ student.user_id }}, '{{ student.name }}')" title="Reset CGPA to 0.00">
+                🧹 Reset
+              </button>
+              {% endif %}
+              <button type="button" class="btn btn-danger-outline btn-sm" style="font-size: 0.76rem; padding: 0.25rem 0.5rem;" onclick="deleteUserAchievement({{ student.user_id }}, '{{ student.name }}')" title="Delete Student Record Completely">
+                🗑️ Delete
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🏆</div>
+    <h3>No Student Records Yet</h3>
+    <p>As students register and save their semester grades, the department rankings will be updated here in descending order.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function deleteUserAchievement(userId, studentName) {
+  if (!confirm(`Are you sure you want to delete "${studentName}"?\n\nThis will permanently remove the student record and their data from Achievements and the database.`)) {
+    return;
+  }
+  try {
+    const res = await fetch(`/api/users/${userId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Failed to delete student.');
+    }
+    alert(data.message);
+    if (data.logged_out) {
+      window.location.href = '/login';
+    } else {
+      window.location.reload();
+    }
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
+async function clearUserAchievement(userId, studentName) {
+  if (!confirm(`Reset CGPA data for "${studentName}"?\n\nThis will clear all saved semesters and reset their CGPA score to 0.00 in Achievements.`)) {
+    return;
+  }
+  try {
+    const res = await fetch(`/api/users/${userId}/clear-data`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Failed to reset CGPA.');
+    }
+    alert(data.message);
+    window.location.reload();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+</script>
+{% endblock %}
+
