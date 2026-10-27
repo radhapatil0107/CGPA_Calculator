@@ -36,14 +36,33 @@ from syllabus import SYLLABUS, get_all_syllabus, get_semester_info
 
 # Application initialization
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+templates_path = os.path.join(project_root, "frontend", "templates")
+static_path = os.path.join(project_root, "frontend", "static")
+# Handle read-only filesystem environments (e.g. Vercel Serverless)
+is_vercel = bool(os.environ.get("VERCEL"))
+if is_vercel:
+    instance_path = "/tmp"
+    database_url = os.environ.get("DATABASE_URL", "sqlite:////tmp/grade_calculator.db")
+else:
+    instance_path = os.path.join(project_root, "instance")
+    try:
+        os.makedirs(instance_path, exist_ok=True)
+    except OSError:
+        instance_path = "/tmp"
+    database_url = os.environ.get("DATABASE_URL", "sqlite:///grade_calculator.db")
+
 app = Flask(
     __name__,
-    instance_path=os.path.join(project_root, "instance"),
-    template_folder="../frontend/templates",
-    static_folder="../frontend/static",
+    instance_path=instance_path,
+    template_folder=templates_path,
+    static_folder=static_path,
 )
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dypcet-cse-ds-grade-calc-secret-2026")
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///grade_calculator.db"
+
+# Database URI with PostgreSQL compatibility (e.g., for cloud deployment)
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+app.config["SQLALCHEMY_DATABASE_URI"] = database_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
@@ -932,4 +951,5 @@ init_db()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(debug=True, host="0.0.0.0", port=port)
+    debug = os.environ.get("FLASK_DEBUG", "false").lower() in ("true", "1")
+    app.run(debug=debug, host="0.0.0.0", port=port)
