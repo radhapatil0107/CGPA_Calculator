@@ -7,7 +7,7 @@ D.Y. Patil College of Engineering & Technology, Kolhapur
 import os
 import json
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 
 from flask import (
@@ -57,7 +57,8 @@ app = Flask(
     template_folder=templates_path,
     static_folder=static_path,
 )
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dypcet-cse-ds-grade-calc-secret-2026")
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "academic-grade-calc-secret-2026")
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 
 # Database URI with PostgreSQL compatibility (e.g., for cloud deployment)
 if database_url.startswith("postgres://"):
@@ -104,7 +105,7 @@ class StudentProfile(db.Model):
     prn = db.Column(db.String(40), default="202401234567")
     branch = db.Column(db.String(150), default="B.Tech Computer Science & Engineering (Data Science)")
     year = db.Column(db.String(80), default="Second Year (SY)")
-    college = db.Column(db.String(200), default="D.Y. Patil College of Engineering & Technology, Kolhapur")
+    college = db.Column(db.String(200), default="College of Engineering & Technology")
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def to_dict(self):
@@ -175,6 +176,13 @@ def inject_global_data():
     """Inject current user, profile, and active page into all Jinja templates."""
     user = get_current_user()
     profile = user.profile if user else None
+    if user and not profile:
+        profile = StudentProfile(user_id=user.id, name=user.username)
+        db.session.add(profile)
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
     return {
         "current_user": user,
         "current_profile": profile,
@@ -273,11 +281,12 @@ def login_view():
                 prn="",
                 branch=branch,
                 year="Second Year (SY)",
-                college="D.Y. Patil College of Engineering & Technology, Kolhapur"
+                college="College of Engineering & Technology"
             )
             db.session.add(profile)
             db.session.commit()
 
+            session.permanent = True
             session["user_id"] = new_user.id
             session["username"] = new_user.username
             flash(f"Welcome, {name}! Your account has been registered successfully.", "success")
@@ -307,6 +316,7 @@ def login_view():
                     user = prof.user
 
             if user and user.check_password(password):
+                session.permanent = True
                 session["user_id"] = user.id
                 session["username"] = user.username
                 flash(f"Welcome back, {user.profile.name if user.profile else user.username}!", "success")

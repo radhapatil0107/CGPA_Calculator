@@ -9,36 +9,43 @@
    -------------------------------------------------------------------------- */
 :root {
   color-scheme: light;
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --primary-light: #e0e7ff;
-  --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
-  --accent: #06b6d4;
-  --success: #10b981;
-  --success-light: #d1fae5;
+  /* Navy Blue + Light Blue + White Theme with Teal Accents */
+  --primary: #0f3b6c;               /* Deep Navy Blue */
+  --primary-hover: #0a2544;         /* Rich Dark Navy */
+  --primary-light: #e0f2fe;         /* Crisp Light Blue */
+  --primary-gradient: linear-gradient(135deg, #0a1e3b 0%, #0f4c81 50%, #0d9488 100%); /* Navy to Teal */
+  
+  --accent: #0d9488;                /* Vibrant Teal Accent */
+  --accent-hover: #0f766e;          /* Deep Teal */
+  --accent-light: #ccfbf1;          /* Soft Light Teal */
+  --accent-gradient: linear-gradient(135deg, #0d9488 0%, #06b6d4 100%);
+  
+  --success: #0d9488;               /* Teal Success Accent */
+  --success-light: #ccfbf1;
   --warning: #f59e0b;
   --warning-light: #fef3c7;
   --danger: #ef4444;
   --danger-light: #fee2e2;
 
-  --bg-main: #f8fafc;
-  --bg-card: #ffffff;
-  --bg-secondary: #f1f5f9;
-  --border-color: #e2e8f0;
-  --border-focus: #818cf8;
+  --bg-main: #f0f7ff;               /* Crisp Light Blue-White Tone */
+  --bg-card: #ffffff;               /* Pure Crisp White */
+  --bg-secondary: #e6f2fd;          /* Soft Light Blue Surface */
+  --border-color: #cfe2f5;          /* Subtle Light Blue Border */
+  --border-focus: #0ea5e9;          /* Sky Blue Focus Ring */
 
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --text-subtle: #94a3b8;
+  --text-main: #0a1c33;             /* Deep Navy High-Contrast Text */
+  --text-muted: #3b5a7a;            /* Slate Navy Muted Text */
+  --text-subtle: #7393b3;           /* Soft Blue-Gray Subtle Text */
   --text-inverse: #ffffff;
 
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-  --shadow-glow: 0 0 15px rgba(79, 70, 229, 0.25);
-  --glow-blue: 0 0 14px rgba(59, 130, 246, 0.45);
-  --glow-blue-sm: 0 0 10px rgba(59, 130, 246, 0.35);
-  --glow-blue-lg: 0 0 18px rgba(59, 130, 246, 0.5);
+  --shadow-sm: 0 1px 3px 0 rgba(10, 30, 60, 0.06);
+  --shadow-md: 0 4px 8px -1px rgba(10, 30, 60, 0.08), 0 2px 4px -2px rgba(10, 30, 60, 0.06);
+  --shadow-lg: 0 10px 20px -3px rgba(10, 30, 60, 0.12), 0 4px 6px -4px rgba(10, 30, 60, 0.06);
+  --shadow-glow: 0 0 16px rgba(14, 165, 233, 0.25);
+  --glow-blue: 0 0 14px rgba(14, 165, 233, 0.45);
+  --glow-blue-sm: 0 0 10px rgba(14, 165, 233, 0.35);
+  --glow-blue-lg: 0 0 18px rgba(13, 148, 136, 0.45);
+  --glow-teal: 0 0 16px rgba(13, 148, 136, 0.5);
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -52,27 +59,39 @@
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg-main: #0b0f19;
-  --bg-card: #131b2e;
-  --bg-secondary: #1a243b;
-  --border-color: #273552;
-  --border-focus: #6366f1;
+  /* Deep Navy Midnight Blue Family with Luminous Light Blue & Teal */
+  --bg-main: #060d1a;               /* Deepest Midnight Navy */
+  --bg-card: #0a1628;               /* Rich Navy Blue Surface */
+  --bg-secondary: #102138;          /* Midnight Navy Accent Surface */
+  --border-color: #183152;          /* Deep Navy Border */
+  --border-focus: #38bdf8;          /* Bright Light Blue Focus */
 
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-subtle: #64748b;
+  --text-main: #f0f7ff;             /* Ice White High Contrast */
+  --text-muted: #8da6c4;            /* Soft Sky-Slate Muted */
+  --text-subtle: #597394;
 
-  --primary-light: rgba(79, 70, 229, 0.2);
-  --success-light: rgba(16, 185, 129, 0.2);
-  --warning-light: rgba(245, 158, 11, 0.2);
-  --danger-light: rgba(239, 68, 68, 0.2);
+  --primary: #38bdf8;               /* Radiant Light Blue for Dark Mode */
+  --primary-hover: #7dd3fc;
+  --primary-light: rgba(56, 189, 248, 0.16);
+  --primary-gradient: linear-gradient(135deg, #0f3b6c 0%, #0284c7 50%, #0d9488 100%);
+  
+  --accent: #2dd4bf;                /* Luminous Teal Accent */
+  --accent-hover: #5eead4;
+  --accent-light: rgba(45, 212, 191, 0.16);
+  --accent-gradient: linear-gradient(135deg, #0284c7 0%, #2dd4bf 100%);
 
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 20px -3px rgba(0, 0, 0, 0.5);
-  --glow-blue: 0 0 16px rgba(96, 165, 250, 0.45);
-  --glow-blue-sm: 0 0 12px rgba(96, 165, 250, 0.35);
-  --glow-blue-lg: 0 0 20px rgba(96, 165, 250, 0.55);
+  --success: #2dd4bf;               /* Teal Accent for Success in Dark Mode */
+  --success-light: rgba(45, 212, 191, 0.16);
+  --warning-light: rgba(245, 158, 11, 0.18);
+  --danger-light: rgba(239, 68, 68, 0.18);
+
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 8px -1px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 10px 24px -3px rgba(0, 0, 0, 0.6);
+  --glow-blue: 0 0 16px rgba(56, 189, 248, 0.45);
+  --glow-blue-sm: 0 0 12px rgba(56, 189, 248, 0.35);
+  --glow-blue-lg: 0 0 20px rgba(45, 212, 191, 0.5);
+  --glow-teal: 0 0 18px rgba(45, 212, 191, 0.55);
 }
 
 /* --------------------------------------------------------------------------
@@ -136,17 +155,17 @@ a:hover {
 }
 
 .brand-logo-icon {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--radius-md);
   background: var(--primary-gradient);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-weight: 700;
-  font-size: 1.25rem;
+  font-size: 1.55rem;
+  line-height: 1;
   box-shadow: var(--shadow-sm);
+  user-select: none;
 }
 
 .brand-text h1 {
@@ -445,11 +464,11 @@ select:-webkit-autofill:focus {
 [data-theme="dark"] select:-webkit-autofill,
 [data-theme="dark"] select:-webkit-autofill:hover,
 [data-theme="dark"] select:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px #1a243b inset !important;
-  -webkit-text-fill-color: #f8fafc !important;
-  caret-color: #f8fafc !important;
-  color: #f8fafc !important;
-  border-color: #273552 !important;
+  -webkit-box-shadow: 0 0 0 1000px #102138 inset !important;
+  -webkit-text-fill-color: #f0f7ff !important;
+  caret-color: #f0f7ff !important;
+  color: #f0f7ff !important;
+  border-color: #183152 !important;
 }
 
 input:-webkit-autofill:focus,
@@ -515,6 +534,18 @@ input[type="number"] {
   background: var(--primary-hover);
   color: #fff;
   box-shadow: var(--glow-blue-lg);
+}
+
+[data-theme="dark"] .btn-primary {
+  background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%);
+  color: #ffffff;
+  border-color: transparent;
+}
+
+[data-theme="dark"] .btn-primary:hover {
+  background: linear-gradient(135deg, #0369a1 0%, #0f766e 100%);
+  color: #ffffff;
+  box-shadow: var(--glow-teal);
 }
 
 .btn-outline {
@@ -628,14 +659,18 @@ input[type="number"] {
   line-height: 1;
 }
 
-.badge-O { background: #dbeafe; color: #1e40af; }
-.badge-A-plus { background: #e0e7ff; color: #4338ca; }
-.badge-A { background: #ede9fe; color: #6d28d9; }
+.badge-O { background: #e0f2fe; color: #0369a1; }
+.badge-A-plus { background: #ccfbf1; color: #0f766e; }
+.badge-A { background: #e0e7ff; color: #1e40af; }
 .badge-B-plus { background: #d1fae5; color: #065f46; }
 .badge-B { background: #ecfdf5; color: #047857; }
 .badge-C { background: #fef3c7; color: #92400e; }
 .badge-P { background: #ffedd5; color: #9a3412; }
 .badge-F { background: #fee2e2; color: #991b1b; }
+
+[data-theme="dark"] .badge-O { background: rgba(56, 189, 248, 0.2); color: #7dd3fc; }
+[data-theme="dark"] .badge-A-plus { background: rgba(45, 212, 191, 0.2); color: #5eead4; }
+[data-theme="dark"] .badge-A { background: rgba(147, 197, 253, 0.2); color: #93c5fd; }
 
 /* --------------------------------------------------------------------------
    Alerts & Notifications
@@ -1074,12 +1109,12 @@ input[type="number"] {
 .calc-nav-tab.active {
   background: var(--bg-card);
   color: var(--primary);
-  border-color: var(--primary);
-  box-shadow: var(--shadow-sm);
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(13, 148, 136, 0.22);
 }
 
 .calc-nav-tab.active:hover {
-  box-shadow: var(--glow-blue-lg);
+  box-shadow: var(--glow-teal);
 }
 
 .calc-nav-tab .tab-title {
@@ -1128,8 +1163,8 @@ input[type="number"] {
 
 /* Year Result Summary Card */
 .year-result-card {
-  background: linear-gradient(135deg, rgba(79, 70, 229, 0.07) 0%, rgba(16, 185, 129, 0.07) 100%);
-  border: 2px solid var(--primary);
+  background: linear-gradient(135deg, rgba(15, 59, 108, 0.08) 0%, rgba(13, 148, 136, 0.08) 100%);
+  border: 2px solid var(--accent);
   border-radius: var(--radius-md);
   padding: 1.5rem;
   margin-bottom: 2rem;

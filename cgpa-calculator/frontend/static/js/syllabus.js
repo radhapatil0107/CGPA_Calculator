@@ -3,7 +3,7 @@
  * Easy to edit directly or modify backend/syllabus.py / syllabus.json
  */
 const DYPCET_SYLLABUS = {
-  "college": "D.Y. Patil College of Engineering & Technology, Kolhapur",
+  "college": "Department of Computer Science & Engineering (Data Science)",
   "department": "Computer Science & Engineering (Data Science)",
   "scheme": "NEP-2020 Autonomous Curriculum",
   "years": {
