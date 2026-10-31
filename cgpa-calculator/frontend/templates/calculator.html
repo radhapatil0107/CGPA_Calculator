@@ -151,14 +151,17 @@
   <div class="card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem; background: var(--bg-secondary);">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
       <div>
-        <strong style="color: var(--text-main); font-size: 0.95rem; display: block;">&#128197; Manage General Semesters:</strong>
+        <strong style="color: var(--text-main); font-size: 0.95rem; display: block;">&#128197; Manage General Semesters (Sem 1 to Sem 8):</strong>
         <span style="font-size: 0.84rem; color: var(--text-muted);">
-          Add your semesters one by one, enter subjects and grades, and monitor overall CGPA.
+          Add your 4-year engineering degree semesters step-by-step (maximum 8 semesters).
         </span>
       </div>
-      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        <button type="button" class="btn btn-primary btn-sm" onclick="addNewGeneralSemester()">
-          + Add Next Semester
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+        <button type="button" class="btn btn-primary btn-sm" id="btnAddNewGenSem" onclick="addNewGeneralSemester()">
+          + Add Next Semester (Max 8)
+        </button>
+        <button type="button" class="btn btn-danger-outline btn-sm" id="btnRemoveGenSem" style="display: none;" onclick="removeLastGeneralSemester()">
+          &minus; Remove Last Semester
         </button>
         <button type="button" class="btn btn-secondary btn-sm" onclick="resetGeneralCalculator()">
           &#129529; Reset All

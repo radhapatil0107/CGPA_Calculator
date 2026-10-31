@@ -673,12 +673,44 @@ function printDypcetYearReport() {
 }
 
 // =============================================================================
-// TAB 2: GENERAL MODE LOGIC (ANY USER / ANY COLLEGE)
+// TAB 2: GENERAL MODE LOGIC (ANY USER / ANY COLLEGE - MAX 8 SEMESTERS)
 // =============================================================================
+const MAX_GENERAL_SEMESTERS = 8;
+
 function initGeneralTab() {
+  if (generalSemesters.length > MAX_GENERAL_SEMESTERS) {
+    generalSemesters = generalSemesters.slice(0, MAX_GENERAL_SEMESTERS);
+    if (activeGeneralSemIndex >= MAX_GENERAL_SEMESTERS) {
+      activeGeneralSemIndex = MAX_GENERAL_SEMESTERS - 1;
+    }
+  }
   renderGeneralSemesterPills();
   renderActiveGeneralSemester();
   updateGeneralOverallSummary();
+  updateAddSemesterButtonState();
+}
+
+function updateAddSemesterButtonState() {
+  const addBtn = document.getElementById("btnAddNewGenSem");
+  const removeBtn = document.getElementById("btnRemoveGenSem");
+  if (addBtn) {
+    if (generalSemesters.length >= MAX_GENERAL_SEMESTERS) {
+      addBtn.disabled = true;
+      addBtn.style.opacity = "0.65";
+      addBtn.style.cursor = "not-allowed";
+      addBtn.title = "Maximum 8 semesters reached (4-Year Engineering Degree)";
+      addBtn.innerHTML = `&#10004; Max 8 Semesters Reached`;
+    } else {
+      addBtn.disabled = false;
+      addBtn.style.opacity = "1";
+      addBtn.style.cursor = "pointer";
+      addBtn.title = `Add Semester ${generalSemesters.length + 1} of ${MAX_GENERAL_SEMESTERS}`;
+      addBtn.innerHTML = `+ Add Semester ${generalSemesters.length + 1} (Max 8)`;
+    }
+  }
+  if (removeBtn) {
+    removeBtn.style.display = generalSemesters.length > 1 ? "inline-flex" : "none";
+  }
 }
 
 function renderGeneralSemesterPills() {
@@ -695,6 +727,7 @@ function renderGeneralSemesterPills() {
     btn.onclick = () => switchGeneralSemester(idx);
     container.appendChild(btn);
   });
+  updateAddSemesterButtonState();
 }
 
 function switchGeneralSemester(index) {
@@ -704,6 +737,11 @@ function switchGeneralSemester(index) {
 }
 
 function addNewGeneralSemester() {
+  if (generalSemesters.length >= MAX_GENERAL_SEMESTERS) {
+    alert("Maximum limit of 8 semesters reached! A 4-year engineering degree has only 8 semesters.");
+    updateAddSemesterButtonState();
+    return;
+  }
   const nextNo = generalSemesters.length + 1;
   generalSemesters.push({
     semNo: nextNo,
@@ -716,6 +754,24 @@ function addNewGeneralSemester() {
   renderGeneralSemesterPills();
   renderActiveGeneralSemester();
   updateGeneralOverallSummary();
+  updateAddSemesterButtonState();
+}
+
+function removeLastGeneralSemester() {
+  if (generalSemesters.length <= 1) {
+    alert("At least one semester must remain.");
+    return;
+  }
+  const lastSem = generalSemesters[generalSemesters.length - 1];
+  if (!confirm(`Are you sure you want to remove ${lastSem.name}?`)) return;
+  generalSemesters.pop();
+  if (activeGeneralSemIndex >= generalSemesters.length) {
+    activeGeneralSemIndex = generalSemesters.length - 1;
+  }
+  renderGeneralSemesterPills();
+  renderActiveGeneralSemester();
+  updateGeneralOverallSummary();
+  updateAddSemesterButtonState();
 }
 
 function renderActiveGeneralSemester() {
