@@ -30,14 +30,8 @@
     </div>
 
     <!-- Login Form -->
-    <form id="loginForm" method="POST" action="{{ url_for('login_view') }}" autocomplete="off">
+    <form id="loginForm" method="POST" action="{{ url_for('login_view') }}">
       <input type="hidden" name="action" value="login">
-
-      <!-- Hidden honeypot fields to absorb browser autofill away from real inputs -->
-      <div style="display:none; position:absolute; left:-9999px;" aria-hidden="true">
-        <input type="text" name="fakeuser" tabindex="-1" autocomplete="username">
-        <input type="password" name="fakepass" tabindex="-1" autocomplete="current-password">
-      </div>
 
       <div class="form-group">
         <label for="loginEmail" class="form-label">
@@ -50,7 +44,7 @@
           class="form-control" 
           placeholder="Enter your email ID" 
           required 
-          autocomplete="off"
+          autocomplete="username"
           autocorrect="off"
           autocapitalize="none"
           spellcheck="false"
@@ -68,7 +62,7 @@
           class="form-control" 
           placeholder="Enter your password" 
           required 
-          autocomplete="off"
+          autocomplete="current-password"
         >
       </div>
 
@@ -189,40 +183,5 @@ function switchAuthTab(mode) {
 
 // Initialize active tab
 switchAuthTab('{{ auth_mode or "login" }}');
-
-// -----------------------------------------------------------------------
-// BLOCK BROWSER AUTOFILL COMPLETELY on Sign In form
-// Browsers ignore autocomplete="off" on password managers, so we use JS
-// to forcibly clear the fields right after any autofill has happened.
-// -----------------------------------------------------------------------
-function clearAutofilledLoginFields() {
-  const emailInput = document.getElementById('loginEmail');
-  const passInput  = document.getElementById('loginPassword');
-
-  // Only clear if the field was NOT already interacted with by the user
-  if (emailInput && !emailInput.dataset.userTyped) {
-    emailInput.value = '';
-  }
-  if (passInput && !passInput.dataset.userTyped) {
-    passInput.value = '';
-  }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  // Mark fields as "user-typed" once the user actually types
-  ['loginEmail', 'loginPassword'].forEach(function(id) {
-    const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener('input', function() { el.dataset.userTyped = '1'; });
-      el.addEventListener('keydown', function() { el.dataset.userTyped = '1'; });
-    }
-  });
-
-  // Clear autofilled values repeatedly — browsers inject autofill asynchronously
-  clearAutofilledLoginFields();
-  setTimeout(clearAutofilledLoginFields, 50);
-  setTimeout(clearAutofilledLoginFields, 200);
-  setTimeout(clearAutofilledLoginFields, 500);
-});
 </script>
 {% endblock %}
