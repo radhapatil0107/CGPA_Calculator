@@ -1,7 +1,7 @@
 /**
  * Target Plan Client-side Script
- * Department of Computer Science & Engineering (Data Science)
- * D.Y. Patil College of Engineering & Technology, Kolhapur
+ * Department of Computer Science & Engineering
+ * Student Academic Portal
  */
 
 function autofillFromTracker(cgpa, credits) {

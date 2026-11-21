@@ -5,7 +5,7 @@
 {% block content %}
 <div class="page-header">
   <div class="college-tag">
-    <span>👨‍🎓</span> Department of Computer Science &amp; Engineering (Data Science)
+    <span>👨‍🎓</span> Student Profile Management
   </div>
   <h2>Student Information & Academic Profile</h2>
   <p>
@@ -61,7 +61,7 @@
           class="form-control" 
           value="{{ profile.branch }}" 
           required 
-          placeholder="e.g. B.Tech Computer Science & Engineering (Data Science)"
+          placeholder="e.g. B.Tech Computer Science & Engineering"
         >
       </div>
 
@@ -119,7 +119,7 @@
               {{ profile.name or 'Student Name' }}
             </h4>
             <p style="font-size: 0.82rem; color: var(--text-muted);">
-              {{ profile.branch or 'B.Tech CSE (Data Science)' }}
+              {{ profile.branch or 'B.Tech Computer Science & Engineering' }}
             </p>
           </div>
         </div>

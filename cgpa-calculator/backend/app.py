@@ -1,7 +1,6 @@
 """
 Student Grade Calculator - Flask Backend
-College Mini Project: Second Year B.Tech CSE (Data Science)
-D.Y. Patil College of Engineering & Technology, Kolhapur
+Student Academic Portal & CGPA Tracker
 """
 
 import os
@@ -103,9 +102,9 @@ class StudentProfile(db.Model):
     name = db.Column(db.String(120), default="Student")
     roll_no = db.Column(db.String(40), default="DS-201")
     prn = db.Column(db.String(40), default="202401234567")
-    branch = db.Column(db.String(150), default="B.Tech Computer Science & Engineering (Data Science)")
+    branch = db.Column(db.String(150), default="B.Tech Computer Science & Engineering")
     year = db.Column(db.String(80), default="Second Year (SY)")
-    college = db.Column(db.String(200), default="College of Engineering & Technology")
+    college = db.Column(db.String(200), default="Engineering Institute")
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def to_dict(self):
@@ -476,7 +475,7 @@ def achievements_view():
         prof = u.profile
         student_name = prof.name if (prof and prof.name) else u.username
         roll_no = prof.roll_no if (prof and prof.roll_no) else "-"
-        branch = prof.branch if (prof and prof.branch) else "CSE (Data Science)"
+        branch = prof.branch if (prof and prof.branch) else "Computer Science & Engineering"
 
         percentage_val = calculate_percentage(cgpa_val, 9.5) if cgpa_val > 0 else 0.0
         perf_class = get_performance_class(cgpa_val) if cgpa_val > 0 else "N/A"
@@ -584,7 +583,7 @@ def api_grades():
 
 @app.route("/api/syllabus", methods=["GET"])
 def api_syllabus():
-    """Return official DYPCET B.Tech Data Science syllabus."""
+    """Return official B.Tech Computer Science syllabus."""
     return jsonify({"success": True, "syllabus": get_all_syllabus()})
 
 

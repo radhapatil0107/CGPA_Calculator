@@ -6,16 +6,16 @@
 <div style="max-width: 520px; margin: 1.5rem auto;">
   <div class="card" style="padding: 2.25rem;">
     
-    <!-- College Identity Header -->
+    <!-- Student Identity Header -->
     <div style="text-align: center; margin-bottom: 1.75rem;">
       <div class="college-tag">
-        <span>👨‍🎓</span> Department of Computer Science &amp; Engineering (Data Science)
+        <span>👨‍🎓</span> Student Academic Portal
       </div>
       <h2 style="font-size: 1.6rem; font-weight: 700; color: var(--text-main);">
         Student Portal
       </h2>
       <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.25rem;">
-        Department of CSE (Data Science) &bull; Grade Calculator
+        Academic Grade &amp; CGPA Portal
       </p>
     </div>
 
@@ -30,24 +30,25 @@
     </div>
 
     <!-- Login Form -->
-    <form id="loginForm" method="POST" action="{{ url_for('login_view') }}">
+    <form id="loginForm" method="POST" action="{{ url_for('login_view') }}" autocomplete="off">
       <input type="hidden" name="action" value="login">
 
       <div class="form-group">
         <label for="loginEmail" class="form-label">
-          Email ID <span class="req">*</span>
+          Email ID / Username <span class="req">*</span>
         </label>
         <input 
-          type="email" 
+          type="text" 
           id="loginEmail" 
           name="email" 
           class="form-control" 
-          placeholder="Enter your email ID" 
+          placeholder="Enter your Email ID or Username" 
           required 
-          autocomplete="username"
+          autocomplete="off"
           autocorrect="off"
           autocapitalize="none"
           spellcheck="false"
+          value=""
         >
       </div>
 
@@ -62,7 +63,8 @@
           class="form-control" 
           placeholder="Enter your password" 
           required 
-          autocomplete="current-password"
+          autocomplete="new-password"
+          value=""
         >
       </div>
 
@@ -183,5 +185,13 @@ function switchAuthTab(mode) {
 
 // Initialize active tab
 switchAuthTab('{{ auth_mode or "login" }}');
+
+// Clear any stale browser autofill on fresh page load or back-navigation
+window.addEventListener('pageshow', function() {
+  const form = document.getElementById('loginForm');
+  if (form && !'{{ auth_mode }}') {
+    form.reset();
+  }
+});
 </script>
 {% endblock %}

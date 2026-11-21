@@ -1,8 +1,8 @@
 /**
  * Dual-Mode SGPA & CGPA Calculator Client-side Logic
- * Mode 1: DYPCET Data Science (NEP-2020 syllabus for 2nd, 3rd & 4th Year)
+ * Mode 1: Curriculum-Aligned (NEP-2020 syllabus for 2nd, 3rd & 4th Year)
  * Mode 2: General Calculator (Step-by-step for any student / college)
- * D.Y. Patil College of Engineering & Technology, Kolhapur
+ * Student Academic Portal
  */
 
 // Grade Scale Definition

@@ -1,6 +1,6 @@
 {
-  "college": "D.Y. Patil College of Engineering & Technology, Kolhapur",
-  "department": "Computer Science & Engineering (Data Science)",
+  "college": "College of Engineering",
+  "department": "Computer Science & Engineering",
   "scheme": "NEP-2020 Autonomous Curriculum",
   "years": {
     "second_year": {
@@ -73,7 +73,7 @@
         {
           "code": "231DSMDML201",
           "type": "MDM-I",
-          "name": "Fundamentals of Data Science",
+          "name": "Fundamentals of Data Analytics",
           "credits": 2,
           "total_marks": 50,
           "is_audit": false
@@ -81,7 +81,7 @@
         {
           "code": "231DSOECL201",
           "type": "OEC-I",
-          "name": "Data Science for Everyone",
+          "name": "Applied Computing & Analytics",
           "credits": 4,
           "total_marks": 125,
           "is_audit": false

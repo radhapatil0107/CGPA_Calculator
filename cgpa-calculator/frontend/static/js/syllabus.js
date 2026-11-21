@@ -1,10 +1,10 @@
 /**
- * DYPCET B.Tech Data Science Official Syllabus (NEP-2020)
+ * B.Tech Computer Science Official Syllabus (NEP-2020)
  * Easy to edit directly or modify backend/syllabus.py / syllabus.json
  */
 const DYPCET_SYLLABUS = {
-  "college": "Department of Computer Science & Engineering (Data Science)",
-  "department": "Computer Science & Engineering (Data Science)",
+  "college": "Department of Computer Science & Engineering",
+  "department": "Computer Science & Engineering",
   "scheme": "NEP-2020 Autonomous Curriculum",
   "years": {
     "second_year": {
@@ -77,7 +77,7 @@ const DYPCET_SYLLABUS = {
         {
           "code": "231DSMDML201",
           "type": "MDM-I",
-          "name": "Fundamentals of Data Science",
+          "name": "Fundamentals of Data Analytics",
           "credits": 2,
           "total_marks": 50,
           "is_audit": false
@@ -85,7 +85,7 @@ const DYPCET_SYLLABUS = {
         {
           "code": "231DSOECL201",
           "type": "OEC-I",
-          "name": "Data Science for Everyone",
+          "name": "Applied Computing & Analytics",
           "credits": 4,
           "total_marks": 125,
           "is_audit": false

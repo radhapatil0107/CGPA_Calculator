@@ -1,6 +1,5 @@
 """
-D.Y. Patil College of Engineering & Technology, Kolhapur
-Department of Computer Science & Engineering (Data Science)
+Department of Computer Science & Engineering
 Official Teaching and Evaluation Scheme (as per NEP-2020)
 
 Curriculum syllabus structure for 2nd Year, 3rd Year, and 4th Year.
@@ -10,8 +9,8 @@ Easy to modify and maintain.
 from typing import Dict, List, Any
 
 SYLLABUS: Dict[str, Any] = {
-    "college": "D.Y. Patil College of Engineering & Technology, Kolhapur",
-    "department": "Computer Science & Engineering (Data Science)",
+    "college": "College of Engineering",
+    "department": "Computer Science & Engineering",
     "scheme": "NEP-2020 Autonomous Curriculum",
     "years": {
         "second_year": {
@@ -75,7 +74,7 @@ SYLLABUS: Dict[str, Any] = {
                 {
                     "code": "231DSMDML201",
                     "type": "MDM-I",
-                    "name": "Fundamentals of Data Science",
+                    "name": "Fundamentals of Data Analytics",
                     "credits": 2,
                     "total_marks": 50,
                     "is_audit": False
@@ -83,7 +82,7 @@ SYLLABUS: Dict[str, Any] = {
                 {
                     "code": "231DSOECL201",
                     "type": "OEC-I",
-                    "name": "Data Science for Everyone",
+                    "name": "Applied Computing & Analytics",
                     "credits": 4,
                     "total_marks": 125,
                     "is_audit": False

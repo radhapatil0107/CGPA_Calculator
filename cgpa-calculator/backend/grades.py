@@ -1,7 +1,6 @@
 """
 Grade definitions and scale configurations for the Student Grade Calculator.
-Aligned with Autonomous / Shivaji University grading standards for
-B.Tech CSE (Data Science), D.Y. Patil College of Engineering & Technology, Kolhapur.
+Aligned with Autonomous Engineering University 10-point credit grading standards.
 """
 
 from typing import Dict, List, Optional
