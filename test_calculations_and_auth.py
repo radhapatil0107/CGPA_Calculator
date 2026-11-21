@@ -144,26 +144,38 @@ class TestAuthenticationAndLogin(unittest.TestCase):
 
     test_db_path = os.path.join(base_dir, "test_auth_temp.db")
 
-    def setUp(self):
-        # Configure app for testing with clean temporary file SQLite
+    @classmethod
+    def setUpClass(cls):
         app.config["TESTING"] = True
-        app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{self.test_db_path}"
+        app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{cls.test_db_path}"
         app.config["WTF_CSRF_ENABLED"] = False
-        self.client = app.test_client()
         with app.app_context():
             db.engine.dispose()
             db.create_all()
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(cls):
         with app.app_context():
             db.session.remove()
             db.drop_all()
             db.engine.dispose()
-        if os.path.exists(self.test_db_path):
+        if os.path.exists(cls.test_db_path):
             try:
-                os.remove(self.test_db_path)
+                os.remove(cls.test_db_path)
             except OSError:
                 pass
+
+    def setUp(self):
+        self.client = app.test_client()
+        with app.app_context():
+            db.session.query(Semester).delete()
+            db.session.query(StudentProfile).delete()
+            db.session.query(User).delete()
+            db.session.commit()
+
+    def tearDown(self):
+        with app.app_context():
+            db.session.remove()
 
     def test_user_registration_success(self):
         """Test normal user registration."""
