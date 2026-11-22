@@ -76,6 +76,9 @@
             <a href="{{ url_for('student_info_view') }}" class="btn btn-secondary btn-sm {% if active_page == 'student_info' %}active{% endif %}" title="View Student Profile" style="display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 600;">
               <span style="font-size: 1.25rem; line-height: 1;">👨‍🎓</span>
               <span class="user-display-name">{{ current_profile.name if current_profile and current_profile.name else current_user.username }}</span>
+              {% if global_cgpa_data and global_cgpa_data.cgpa > 0 %}
+                <span class="badge badge-A-plus" style="font-size: 0.72rem; padding: 0.15rem 0.45rem; border-radius: 9999px;">{{ "%.2f"|format(global_cgpa_data.cgpa) }} CGPA</span>
+              {% endif %}
             </a>
             <a href="{{ url_for('logout_view') }}" class="btn btn-outline btn-sm" title="Logout">
               Logout

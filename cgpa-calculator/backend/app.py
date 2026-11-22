@@ -10,6 +10,10 @@ import tempfile
 from datetime import datetime, timezone, timedelta
 from functools import wraps
 
+def utcnow():
+    """Return timezone-naive UTC datetime compatible with SQLite and standard python datetimes."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
 from flask import (
     Flask,
     render_template,
@@ -102,7 +106,7 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=True, index=True)
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
     last_login = db.Column(db.DateTime, nullable=True)
     login_count = db.Column(db.Integer, default=0)
     
@@ -145,7 +149,7 @@ class StudentProfile(db.Model):
     branch = db.Column(db.String(150), default="B.Tech Computer Science & Engineering (Data Science)")
     year = db.Column(db.String(80), default="Second Year (SY)")
     college = db.Column(db.String(200), default="D.Y. Patil College of Engineering & Technology, Kolhapur")
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
     def to_dict(self):
         return {
@@ -170,7 +174,7 @@ class Semester(db.Model):
     sgpa = db.Column(db.Float, nullable=False)
     grade_points = db.Column(db.Float, nullable=False)
     subjects_json = db.Column(db.Text, nullable=True)  # JSON-encoded list of subjects
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
     def to_dict(self):
         subjects = []
@@ -221,7 +225,7 @@ def get_current_user():
 
 @app.context_processor
 def inject_global_data():
-    """Inject current user, profile, and active page into all Jinja templates."""
+    """Inject current user, profile, academic calculations, and active page into all Jinja templates."""
     user = get_current_user()
     profile = user.profile if user else None
     if user and not profile:
@@ -231,10 +235,27 @@ def inject_global_data():
             db.session.commit()
         except Exception:
             db.session.rollback()
+
+    global_cgpa_data = {"cgpa": 0.0, "total_credits": 0.0, "total_points": 0.0, "semester_count": 0}
+    global_percentage = 0.0
+    global_performance = "N/A"
+
+    if user:
+        user_sems = Semester.query.filter_by(user_id=user.id).order_by(Semester.semester_no).all()
+        if user_sems:
+            sem_list = [{"credits": s.credits, "sgpa": s.sgpa, "semester_no": s.semester_no} for s in user_sems]
+            global_cgpa_data = calculate_cgpa(sem_list)
+            if global_cgpa_data["cgpa"] > 0:
+                global_percentage = calculate_percentage(global_cgpa_data["cgpa"], 9.5)
+                global_performance = get_performance_class(global_cgpa_data["cgpa"])
+
     return {
         "current_user": user,
         "current_profile": profile,
-        "now": datetime.utcnow()
+        "global_cgpa_data": global_cgpa_data,
+        "global_percentage": global_percentage,
+        "global_performance": global_performance,
+        "now": utcnow()
     }
 
 
@@ -370,24 +391,25 @@ def login_view():
                 username=username,
                 email=email,
                 unique_id=None,
-                created_at=datetime.utcnow(),
-                last_login=datetime.utcnow(),
+                created_at=utcnow(),
+                last_login=utcnow(),
                 login_count=1
             )
             new_user.set_password(password)
             db.session.add(new_user)
             db.session.flush()
 
-            roll_no = request.form.get("roll_no", "").strip()
+            roll_no = request.form.get("roll_no", "").strip() or "DS-201"
             prn = request.form.get("prn", "").strip() or f"2024{new_user.id:08d}"
+            college = request.form.get("college", "").strip() or "D.Y. Patil College of Engineering & Technology, Kolhapur"
             profile = StudentProfile(
                 user_id=new_user.id,
                 name=name,
-                roll_no=roll_no or "DS-202",
+                roll_no=roll_no,
                 prn=prn,
                 branch=branch or "B.Tech Computer Science & Engineering (Data Science)",
                 year="Second Year (SY)",
-                college="D.Y. Patil College of Engineering & Technology, Kolhapur"
+                college=college
             )
             db.session.add(profile)
             db.session.commit()
@@ -396,6 +418,12 @@ def login_view():
             session["user_id"] = new_user.id
             session["username"] = new_user.username
             flash(f"Welcome, {name}! Your account has been registered successfully. (Username: {new_user.username})", "success")
+            next_page = request.args.get("next") or request.form.get("next")
+            if next_page:
+                if next_page in ["calculator_view", "tracker_view", "achievements_view", "student_info_view"]:
+                    return redirect(url_for(next_page))
+                if next_page.startswith("/") and not next_page.startswith("//"):
+                    return redirect(next_page)
             return redirect(url_for("index"))
 
         else:  # Login
@@ -452,18 +480,21 @@ def login_view():
                 is_valid_pw = user.check_password(password)
 
             if user and is_valid_pw:
-                user.last_login = datetime.utcnow()
+                user.last_login = utcnow()
                 user.login_count = (user.login_count or 0) + 1
                 db.session.commit()
 
                 session.permanent = True
                 session["user_id"] = user.id
                 session["username"] = user.username
-                app.logger.info(f"[LOGIN SUCCESS] User ID: {user.id} | Username: {user.username} | Email: {user.email} | Logins: {user.login_count}")
-                flash(f"Welcome back, {user.profile.name if user.profile else user.username}!", "success")
-                next_page = request.args.get("next")
-                if next_page and next_page in ["calculator_view", "tracker_view", "achievements_view", "student_info_view"]:
-                    return redirect(url_for(next_page))
+                disp_name = user.profile.name if user.profile and user.profile.name else user.username
+                flash(f"Welcome back, {disp_name}!", "success")
+                next_page = request.args.get("next") or request.form.get("next")
+                if next_page:
+                    if next_page in ["calculator_view", "tracker_view", "achievements_view", "student_info_view"]:
+                        return redirect(url_for(next_page))
+                    if next_page.startswith("/") and not next_page.startswith("//"):
+                        return redirect(next_page)
                 return redirect(url_for("index"))
             else:
                 flash("Invalid Email ID or password.", "danger")
@@ -659,10 +690,23 @@ def achievements_view():
                 rank = idx + 1
         item["rank"] = rank
 
+    # Extract active student's individual rank and CGPA for quick display
+    curr_u = get_current_user()
+    my_rank = None
+    my_cgpa = 0.0
+    if curr_u:
+        for item in leaderboard:
+            if item["user_id"] == curr_u.id:
+                my_rank = item["rank"]
+                my_cgpa = item["cgpa"]
+                break
+
     return render_template(
         "achievements.html",
         active_page="achievements",
-        leaderboard=leaderboard
+        leaderboard=leaderboard,
+        my_rank=my_rank,
+        my_cgpa=my_cgpa
     )
 
 

@@ -32,6 +32,7 @@
     <!-- Login Form -->
     <form id="loginForm" method="POST" action="{{ url_for('login_view') }}" autocomplete="off">
       <input type="hidden" name="action" value="login">
+      <input type="hidden" name="next" value="{{ next_url or '' }}">
 
       <div class="form-group">
         <label for="loginEmail" class="form-label">
@@ -95,6 +96,7 @@
     <!-- Register Form -->
     <form id="registerForm" method="POST" action="{{ url_for('login_view') }}" style="display: none;">
       <input type="hidden" name="action" value="register">
+      <input type="hidden" name="next" value="{{ next_url or '' }}">
 
       <div class="form-group">
         <label for="regName" class="form-label">
@@ -109,6 +111,34 @@
           required
           autocomplete="name"
         >
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="regRollNo" class="form-label">
+            Roll Number <span style="font-weight: 400; color: var(--text-muted); font-size: 0.8rem;">(e.g. DS-201 or 69)</span>
+          </label>
+          <input 
+            type="text" 
+            id="regRollNo" 
+            name="roll_no" 
+            class="form-control" 
+            placeholder="e.g. DS-201" 
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="regPrn" class="form-label">
+            PRN Number <span style="font-weight: 400; color: var(--text-muted); font-size: 0.8rem;">(Permanent Reg. No)</span>
+          </label>
+          <input 
+            type="text" 
+            id="regPrn" 
+            name="prn" 
+            class="form-control" 
+            placeholder="e.g. 202401234567" 
+          >
+        </div>
       </div>
 
       <div class="form-group">
@@ -151,6 +181,20 @@
           class="form-control" 
           placeholder="e.g. B.Tech Computer Science & Engineering (Data Science)" 
           value="B.Tech Computer Science & Engineering (Data Science)"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="regCollege" class="form-label">
+          College / Institution Name <span class="req">*</span>
+        </label>
+        <input 
+          type="text" 
+          id="regCollege" 
+          name="college" 
+          class="form-control" 
+          value="D.Y. Patil College of Engineering & Technology, Kolhapur" 
           required
         >
       </div>
@@ -223,6 +267,7 @@
     <!-- Reset Password Form -->
     <form id="resetForm" method="POST" action="{{ url_for('login_view') }}" style="display: none;">
       <input type="hidden" name="action" value="reset_password">
+      <input type="hidden" name="next" value="{{ next_url or '' }}">
 
       <div class="form-group">
         <label for="resetEmail" class="form-label">

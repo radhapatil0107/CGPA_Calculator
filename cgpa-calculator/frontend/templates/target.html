@@ -25,10 +25,20 @@
         {{ current_profile.branch }} &bull; 
         <strong>{{ current_profile.college or 'D.Y. Patil College of Engineering & Technology, Kolhapur' }}</strong>
       </span>
+      {% if global_cgpa_data and global_cgpa_data.cgpa > 0 %}
+      <span class="badge badge-A-plus" style="margin-left: 0.5rem;">
+        Current CGPA: {{ "%.2f"|format(global_cgpa_data.cgpa) }} &bull; {{ "%.1f"|format(global_cgpa_data.total_credits) }} cr
+      </span>
+      {% endif %}
     </div>
-    <a href="{{ url_for('student_info_view') }}" class="btn btn-secondary btn-sm" style="font-size: 0.8rem;">
-      &#9998; Edit Profile
-    </a>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+      <a href="{{ url_for('tracker_view') }}" class="btn btn-outline btn-sm" style="font-size: 0.8rem;">
+        &#128200; My Tracker
+      </a>
+      <a href="{{ url_for('student_info_view') }}" class="btn btn-secondary btn-sm" style="font-size: 0.8rem;">
+        &#9998; Edit Profile
+      </a>
+    </div>
   </div>
 </div>
 {% endif %}
@@ -40,7 +50,7 @@
       <h3 class="card-title" style="margin-bottom: 0;">
         <span>&#127919; Plan Your Degree Goal</span>
       </h3>
-      {% if tracker_cgpa > 0 %}
+      {% if current_user %}
       <button type="button" class="btn btn-secondary btn-sm" onclick="autofillFromTracker({{ tracker_cgpa }}, {{ tracker_credits }})">
         &#9889; Pull from My Tracker ({{ "%.2f"|format(tracker_cgpa) }})
       </button>
@@ -61,7 +71,7 @@
             max="10" 
             step="0.01" 
             placeholder="e.g. 7.80" 
-            value="{% if tracker_cgpa > 0 %}{{ '%.2f'|format(tracker_cgpa) }}{% else %}7.50{% endif %}"
+            value="{% if current_user %}{{ '%.2f'|format(tracker_cgpa) }}{% else %}7.50{% endif %}"
             required
           >
           <div class="invalid-feedback" id="currentCgpaError" style="display: none;">Must be between 0 and 10.</div>
@@ -79,7 +89,7 @@
             max="200" 
             step="0.5" 
             placeholder="e.g. 38" 
-            value="{% if tracker_credits > 0 %}{{ '%.1f'|format(tracker_credits) }}{% else %}38.0{% endif %}"
+            value="{% if current_user %}{{ '%.1f'|format(tracker_credits) }}{% else %}38.0{% endif %}"
             required
           >
           <div class="invalid-feedback" id="completedCreditsError" style="display: none;">Credits cannot be negative.</div>

@@ -13,6 +13,36 @@
   </p>
 </div>
 
+<!-- Student Identity Banner (When logged in) -->
+{% if current_user and current_profile %}
+<div class="card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem; background: var(--bg-secondary); border-left: 4px solid var(--primary);">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+    <div>
+      <strong style="color: var(--text-main); font-size: 1.05rem;">👨‍🎓 {{ current_profile.name }}</strong>
+      <span style="color: var(--text-muted); font-size: 0.88rem; margin-left: 0.5rem;">
+        Roll: <strong>{{ current_profile.roll_no or 'N/A' }}</strong> &bull; 
+        PRN: <strong>{{ current_profile.prn or 'N/A' }}</strong> &bull; 
+        {{ current_profile.branch }} &bull; 
+        <strong>{{ current_profile.college or 'D.Y. Patil College of Engineering & Technology, Kolhapur' }}</strong>
+      </span>
+      {% if global_cgpa_data and global_cgpa_data.cgpa > 0 %}
+      <span class="badge badge-A-plus" style="margin-left: 0.5rem;">
+        Your Current CGPA: {{ "%.2f"|format(global_cgpa_data.cgpa) }} &bull; {{ "%.2f"|format(global_percentage) }}%
+      </span>
+      {% endif %}
+    </div>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+      <a href="{{ url_for('tracker_view') }}" class="btn btn-outline btn-sm" style="font-size: 0.8rem;">
+        &#128200; My Tracker
+      </a>
+      <a href="{{ url_for('student_info_view') }}" class="btn btn-secondary btn-sm" style="font-size: 0.8rem;">
+        &#9998; Edit Profile
+      </a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <div class="grid-2">
   <!-- Grade Scale Table -->
   <div class="card">
@@ -80,7 +110,7 @@
             min="0" 
             max="10" 
             step="0.01" 
-            value="8.25"
+            value="{% if current_user %}{{ '%.2f'|format(global_cgpa_data.cgpa) }}{% else %}8.25{% endif %}"
             oninput="computeLivePercentage()"
           >
         </div>

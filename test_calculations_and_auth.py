@@ -453,6 +453,80 @@ class TestAuthenticationAndLogin(unittest.TestCase):
         self.assertEqual(res_ok.status_code, 200)
         self.assertTrue(res_ok.get_json()["success"])
 
+    def test_global_data_and_ui_sync_across_web_pages(self):
+        """Verify student identity, CGPA, credits, and percentage sync across all application pages."""
+        # 1. Register a student with roll no and PRN
+        reg_res = self.client.post("/login", data={
+            "action": "register",
+            "name": "Sync Master Student",
+            "email": "sync_master@dypcet.edu",
+            "username": "sync_master",
+            "roll_no": "DS-888",
+            "prn": "202488888888",
+            "branch": "B.Tech Computer Science & Engineering (Data Science)",
+            "college": "D.Y. Patil College of Engineering & Technology, Kolhapur",
+            "password": "MasterPassword123",
+            "confirm_password": "MasterPassword123"
+        }, follow_redirects=True)
+        self.assertEqual(reg_res.status_code, 200)
+        self.assertIn(b"Sync Master Student", reg_res.data)
+
+        # 2. Verify unified identity banner on all primary pages
+        pages = ["/", "/calculator", "/tracker", "/achievements", "/target", "/grade-scale", "/student-info"]
+        for p in pages:
+            res = self.client.get(p)
+            self.assertEqual(res.status_code, 200, f"Failed on {p}")
+            html = res.data.decode("utf-8")
+            self.assertIn("Sync Master Student", html, f"Name missing on {p}")
+            self.assertIn("DS-888", html, f"Roll missing on {p}")
+            self.assertIn("202488888888", html, f"PRN missing on {p}")
+
+        # 3. Save 2 semesters via /api/save-cgpa
+        save_res = self.client.post("/api/save-cgpa", json={
+            "semesters": [
+                {"semester_no": 1, "semester_name": "Semester 1 (FY)", "credits": 20.0, "sgpa": 8.80},
+                {"semester_no": 2, "semester_name": "Semester 2 (FY)", "credits": 20.0, "sgpa": 9.20}
+            ]
+        })
+        self.assertEqual(save_res.status_code, 200)
+        save_data = save_res.get_json()
+        self.assertEqual(save_data["cgpa"], 9.00)
+        self.assertEqual(save_data["total_credits"], 40.0)
+
+        # 4. Verify 9.00 CGPA appears across dashboard, tracker, achievements, target, grade-scale, transcript
+        pages_sync = {
+            "/": ["9.00", "40.0", "85.50%"],
+            "/tracker": ["9.00", "40.0"],
+            "/achievements": ["9.00", "40.0", "85.50%"],
+            "/target": ["9.00", "40.0"],
+            "/grade-scale": ["9.00"],
+            "/report/transcript": ["9.00", "40.0", "85.50%"]
+        }
+        for p, tokens in pages_sync.items():
+            res = self.client.get(p)
+            self.assertEqual(res.status_code, 200)
+            html = res.data.decode("utf-8")
+            for tok in tokens:
+                self.assertIn(tok, html, f"Expected {tok} on {p}")
+
+        # 5. Live Profile Update Sync Test
+        up_res = self.client.post("/student-info", data={
+            "name": "Sync Master Updated",
+            "roll_no": "DS-777",
+            "prn": "202477777777",
+            "branch": "CSE Data Science",
+            "year": "Final Year",
+            "college": "DYPCET"
+        }, follow_redirects=True)
+        self.assertEqual(up_res.status_code, 200)
+
+        for p in ["/", "/calculator", "/tracker", "/achievements", "/target", "/grade-scale", "/report/transcript"]:
+            res = self.client.get(p)
+            html = res.data.decode("utf-8")
+            self.assertIn("Sync Master Updated", html, f"Updated name missing on {p}")
+            self.assertIn("DS-777", html, f"Updated roll missing on {p}")
+            self.assertIn("202477777777", html, f"Updated PRN missing on {p}")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -25,10 +25,20 @@
         {{ current_profile.branch }} &bull; 
         <strong>{{ current_profile.college or 'D.Y. Patil College of Engineering & Technology, Kolhapur' }}</strong>
       </span>
+      {% if global_cgpa_data and global_cgpa_data.cgpa > 0 %}
+      <span class="badge badge-A-plus" style="margin-left: 0.5rem;">
+        Current CGPA: {{ "%.2f"|format(global_cgpa_data.cgpa) }} &bull; {{ "%.1f"|format(global_cgpa_data.total_credits) }} cr
+      </span>
+      {% endif %}
     </div>
-    <a href="{{ url_for('student_info_view') }}" class="btn btn-secondary btn-sm" style="font-size: 0.8rem;">
-      &#9998; Edit Profile
-    </a>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+      <a href="{{ url_for('tracker_view') }}" class="btn btn-outline btn-sm" style="font-size: 0.8rem;">
+        &#128200; My Tracker
+      </a>
+      <a href="{{ url_for('student_info_view') }}" class="btn btn-secondary btn-sm" style="font-size: 0.8rem;">
+        &#9998; Edit Profile
+      </a>
+    </div>
   </div>
 </div>
 {% endif %}

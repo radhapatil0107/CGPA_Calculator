@@ -9,6 +9,8 @@ let savedSemesters = [];
 
 document.addEventListener("DOMContentLoaded", () => {
   loadTrackerData();
+  // Ensure multi-semester calculator immediately reflects prefilled server rows
+  calculateMultiSemesterCgpa();
 });
 
 /**
@@ -71,13 +73,15 @@ function renderTrackerUI(data) {
   // Render Progression Chart
   renderProgressionChart(semesters);
 
-  // Auto-populate multi-semester calculator if currently empty
+  // Auto-populate or sync multi-semester calculator with latest tracker data
   if (semesters && semesters.length > 0) {
     const inputs = document.querySelectorAll(".cgpa-sem-sgpa");
     let hasValue = false;
     inputs.forEach(inp => { if (inp.value && inp.value.trim()) hasValue = true; });
     if (!hasValue) {
       loadSavedSemestersIntoCalculator();
+    } else {
+      calculateMultiSemesterCgpa();
     }
   }
 }
@@ -428,13 +432,14 @@ function scrollToCgpaCalculator() {
 }
 
 /**
- * Add another semester row to the multi-semester calculator without credits
+ * Add another semester row to the multi-semester calculator with credit weighting
  */
-function addCgpaCalcRow(name = "", sgpa = "") {
+function addCgpaCalcRow(name = "", credits = "20.0", sgpa = "") {
   const tbody = document.getElementById("cgpaCalcBody");
   if (!tbody) return;
   const count = tbody.children.length + 1;
   const semDefaultName = name || `Semester ${count}`;
+  const credVal = credits ? parseFloat(credits).toFixed(1) : "20.0";
 
   const tr = document.createElement("tr");
   tr.className = "cgpa-calc-row";
@@ -443,13 +448,17 @@ function addCgpaCalcRow(name = "", sgpa = "") {
       <input type="text" class="form-control cgpa-sem-name" value="${escapeHtml(semDefaultName)}" required>
     </td>
     <td>
-      <input type="text" inputmode="decimal" class="form-control cgpa-sem-sgpa" placeholder="SGPA / CGPA (e.g. 8.5)" value="${sgpa}" required>
+      <input type="number" step="0.5" min="0.5" max="50" class="form-control cgpa-sem-credits" value="${credVal}" required oninput="calculateMultiSemesterCgpa()">
+    </td>
+    <td>
+      <input type="text" inputmode="decimal" class="form-control cgpa-sem-sgpa" placeholder="e.g. 8.50" value="${sgpa}" required oninput="calculateMultiSemesterCgpa()">
     </td>
     <td style="text-align: center;">
       <button type="button" class="btn btn-danger-outline btn-sm" onclick="removeCgpaCalcRow(this)" title="Remove">&times;</button>
     </td>
   `;
   tbody.appendChild(tr);
+  calculateMultiSemesterCgpa();
 }
 
 /**
@@ -463,51 +472,49 @@ function removeCgpaCalcRow(btn) {
   }
   const tr = btn.closest("tr");
   if (tr) tr.remove();
+  calculateMultiSemesterCgpa();
 }
 
 /**
- * Calculate overall CGPA by taking the average of the entered SGPA/CGPA values
+ * Calculate overall CGPA by taking the credit-weighted average of entered semesters
  */
 function calculateMultiSemesterCgpa() {
   const rows = document.querySelectorAll(".cgpa-calc-row");
   if (rows.length === 0) {
-    alert("Please add at least one semester entry.");
     return;
   }
 
+  let totalWeightedPoints = 0.0;
+  let totalCredits = 0.0;
   let sumSgpa = 0.0;
   let count = 0;
-  let hasError = false;
+  let hasValid = false;
 
   rows.forEach(r => {
-    const nameInp = r.querySelector(".cgpa-sem-name");
     const sgpaInp = r.querySelector(".cgpa-sem-sgpa");
+    const credInp = r.querySelector(".cgpa-sem-credits");
+    if (!sgpaInp) return;
 
-    nameInp.classList.remove("is-invalid");
-    sgpaInp.classList.remove("is-invalid");
+    const valStr = sgpaInp.value.trim();
+    if (!valStr) return;
 
-    const sgpa = parseFloat(sgpaInp.value.trim());
+    const sgpa = parseFloat(valStr);
+    const credits = credInp ? (parseFloat(credInp.value) || 20.0) : 20.0;
 
-    if (isNaN(sgpa) || sgpa < 0 || sgpa > 10) {
-      sgpaInp.classList.add("is-invalid");
-      hasError = true;
-    } else {
+    if (!isNaN(sgpa) && sgpa >= 0 && sgpa <= 10) {
+      totalWeightedPoints += (credits * sgpa);
+      totalCredits += credits;
       sumSgpa += sgpa;
       count += 1;
+      hasValid = true;
     }
   });
 
-  if (hasError) {
-    alert("Please enter valid SGPA / CGPA values between 0.00 and 10.00.");
+  if (!hasValid || count === 0) {
     return;
   }
 
-  if (count === 0) {
-    alert("Please provide at least one valid grade average.");
-    return;
-  }
-
-  const overallCgpa = (sumSgpa / count);
+  const overallCgpa = totalCredits > 0 ? (totalWeightedPoints / totalCredits) : (sumSgpa / count);
   const percentage = Math.min(100, overallCgpa * 9.5);
 
   let division = "Pass Class";
@@ -519,13 +526,21 @@ function calculateMultiSemesterCgpa() {
 
   // Display results
   const resultBox = document.getElementById("cgpaCalcResultBox");
-  document.getElementById("cgpaCalcScore").textContent = overallCgpa.toFixed(2);
-  document.getElementById("cgpaCalcDivision").textContent = division;
-  document.getElementById("cgpaCalcCount").textContent = count;
-  document.getElementById("cgpaCalcPercentage").textContent = `${percentage.toFixed(2)}%`;
+  if (resultBox) {
+    const scoreEl = document.getElementById("cgpaCalcScore");
+    const divEl = document.getElementById("cgpaCalcDivision");
+    const countEl = document.getElementById("cgpaCalcCount");
+    const credEl = document.getElementById("cgpaCalcCredits");
+    const pctEl = document.getElementById("cgpaCalcPercentage");
 
-  resultBox.style.display = "block";
-  resultBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    if (scoreEl) scoreEl.textContent = overallCgpa.toFixed(2);
+    if (divEl) divEl.textContent = division;
+    if (countEl) countEl.textContent = count;
+    if (credEl) credEl.textContent = totalCredits.toFixed(1);
+    if (pctEl) pctEl.textContent = `${percentage.toFixed(2)}%`;
+
+    resultBox.style.display = "block";
+  }
 }
 
 /**
@@ -533,15 +548,15 @@ function calculateMultiSemesterCgpa() {
  */
 function loadSavedSemestersIntoCalculator() {
   if (!savedSemesters || savedSemesters.length === 0) {
-    alert("No saved semesters found in your account.");
     return;
   }
 
   const tbody = document.getElementById("cgpaCalcBody");
+  if (!tbody) return;
   tbody.innerHTML = "";
 
   savedSemesters.forEach(s => {
-    addCgpaCalcRow(s.semester_name || `Semester ${s.semester_no}`, s.sgpa);
+    addCgpaCalcRow(s.semester_name || `Semester ${s.semester_no}`, s.credits, parseFloat(s.sgpa).toFixed(2));
   });
 
   calculateMultiSemesterCgpa();
@@ -566,19 +581,21 @@ async function saveCalculatedCgpa() {
 
   rows.forEach((r, idx) => {
     const nameInp = r.querySelector(".cgpa-sem-name");
+    const credInp = r.querySelector(".cgpa-sem-credits");
     const sgpaInp = r.querySelector(".cgpa-sem-sgpa");
 
     nameInp.classList.remove("is-invalid");
+    if (credInp) credInp.classList.remove("is-invalid");
     sgpaInp.classList.remove("is-invalid");
 
     const semName = nameInp.value.trim() || `Semester ${idx + 1}`;
+    const credits = credInp ? (parseFloat(credInp.value.trim()) || 20.0) : 20.0;
     const sgpa = parseFloat(sgpaInp.value.trim());
 
     if (isNaN(sgpa) || sgpa < 0 || sgpa > 10) {
       sgpaInp.classList.add("is-invalid");
       hasError = true;
     } else {
-      // Determine semester number from text (e.g. "Semester 1 (FY)" -> 1)
       let semNo = idx + 1;
       const match = semName.match(/(?:Semester|Sem)\s*(\d+)/i);
       if (match) {
@@ -589,7 +606,7 @@ async function saveCalculatedCgpa() {
         semester_no: semNo,
         semester_name: semName,
         sgpa: sgpa,
-        credits: 20.0
+        credits: credits
       });
     }
   });
