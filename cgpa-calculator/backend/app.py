@@ -6,6 +6,7 @@ Student Academic Portal & CGPA Tracker
 import os
 import json
 import re
+import tempfile
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -40,14 +41,18 @@ static_path = os.path.join(project_root, "frontend", "static")
 # Handle read-only filesystem environments (e.g. Vercel Serverless)
 is_vercel = bool(os.environ.get("VERCEL"))
 if is_vercel:
-    instance_path = "/tmp"
-    database_url = os.environ.get("DATABASE_URL", "sqlite:////tmp/grade_calculator.db")
+    temp_dir = tempfile.gettempdir()
+    instance_path = temp_dir
+    db_file = os.path.join(temp_dir, "grade_calculator.db").replace("\\", "/")
+    if not db_file.startswith("/"):
+        db_file = "/" + db_file
+    database_url = os.environ.get("DATABASE_URL", f"sqlite://{db_file}")
 else:
     instance_path = os.path.join(project_root, "instance")
     try:
         os.makedirs(instance_path, exist_ok=True)
     except OSError:
-        instance_path = "/tmp"
+        instance_path = tempfile.gettempdir()
     database_url = os.environ.get("DATABASE_URL", "sqlite:///grade_calculator.db")
 
 app = Flask(
@@ -157,7 +162,10 @@ class Semester(db.Model):
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if "user_id" not in session:
+        user = get_current_user()
+        if not user:
+            session.pop("user_id", None)
+            session.pop("username", None)
             flash("Please log in to access this feature.", "warning")
             return redirect(url_for("login_view", next=request.endpoint))
         return f(*args, **kwargs)
@@ -166,7 +174,13 @@ def login_required(f):
 
 def get_current_user():
     if "user_id" in session:
-        return db.session.get(User, session["user_id"])
+        user = db.session.get(User, session["user_id"])
+        if not user:
+            # Purge stale or orphaned session if user no longer exists in DB
+            session.pop("user_id", None)
+            session.pop("username", None)
+            return None
+        return user
     return None
 
 
@@ -222,8 +236,12 @@ def index():
 @app.route("/login", methods=["GET", "POST"])
 def login_view():
     """User authentication: Sign In via Email, Registration with Unique ID & Profile."""
-    if "user_id" in session:
+    if get_current_user():
         return redirect(url_for("index"))
+
+    # Purge any stale session keys so the login page renders cleanly
+    session.pop("user_id", None)
+    session.pop("username", None)
         
     if request.method == "POST":
         action = request.form.get("action", "login")
