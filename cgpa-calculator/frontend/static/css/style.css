@@ -626,6 +626,23 @@ input[type="number"] {
   box-shadow: var(--glow-blue);
 }
 
+.btn-secondary.active {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+  box-shadow: var(--glow-blue-sm);
+  font-weight: 700;
+}
+
+.user-display-name {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: middle;
+}
+
 .btn-danger {
   background: var(--danger);
   color: #fff;

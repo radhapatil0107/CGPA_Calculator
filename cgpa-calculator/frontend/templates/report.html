@@ -153,6 +153,7 @@
     <div class="student-info-grid">
       <div><strong>Student Name:</strong> {{ profile.name if profile else 'Student' }}</div>
       <div><strong>Roll Number:</strong> {{ profile.roll_no if profile and profile.roll_no else 'N/A' }}</div>
+      <div><strong>PRN:</strong> {{ profile.prn if profile and profile.prn else 'N/A' }}</div>
       <div><strong>Branch:</strong> {{ profile.branch if profile else 'B.Tech Computer Science & Engineering' }}</div>
       <div><strong>Academic Year / Class:</strong> {{ profile.year if profile else 'Second Year (SY)' }}</div>
       <div><strong>Issue Date:</strong> {{ now.strftime('%d %B %Y') }}</div>

@@ -94,7 +94,7 @@ db = SQLAlchemy(app)
 # Database Models
 # -----------------------------------------------------------------------------
 class User(db.Model):
-    """User account model with password hashing."""
+    """User account model with password hashing and login activity tracking."""
     __tablename__ = "users"
     
     id = db.Column(db.Integer, primary_key=True)
@@ -103,16 +103,28 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime, nullable=True)
+    login_count = db.Column(db.Integer, default=0)
     
     # Relationships
     profile = db.relationship("StudentProfile", backref="user", uselist=False, cascade="all, delete-orphan")
     semesters = db.relationship("Semester", backref="user", cascade="all, delete-orphan", order_by="Semester.semester_no")
 
     def set_password(self, password: str):
-        self.password_hash = generate_password_hash(password)
+        """Secure, salted password hash using PBKDF2:SHA256 (OWASP industry standard)."""
+        try:
+            self.password_hash = generate_password_hash(password, method="pbkdf2:sha256")
+        except Exception:
+            self.password_hash = generate_password_hash(password)
 
     def check_password(self, password: str) -> bool:
-        return check_password_hash(self.password_hash, password)
+        """Verify candidate plaintext password against stored salted hash."""
+        if not self.password_hash or not password:
+            return False
+        try:
+            return check_password_hash(self.password_hash, password)
+        except Exception:
+            return False
 
 
 class StudentProfile(db.Model):
@@ -303,16 +315,25 @@ def login_view():
                 username = f"{base_username}_{counter}"
                 counter += 1
 
-            new_user = User(username=username, email=email, unique_id=None)
+            new_user = User(
+                username=username,
+                email=email,
+                unique_id=None,
+                created_at=datetime.utcnow(),
+                last_login=datetime.utcnow(),
+                login_count=1
+            )
             new_user.set_password(password)
             db.session.add(new_user)
             db.session.flush()
 
+            roll_no = request.form.get("roll_no", "").strip()
+            prn = request.form.get("prn", "").strip()
             profile = StudentProfile(
                 user_id=new_user.id,
                 name=name,
-                roll_no="",
-                prn="",
+                roll_no=roll_no,
+                prn=prn,
                 branch=branch,
                 year="Second Year (SY)",
                 college="College of Engineering & Technology"
@@ -329,10 +350,10 @@ def login_view():
         else:  # Login
             login_id = request.form.get("email", "").strip()
             if not login_id:
-                flash("Please enter your Email ID.", "danger")
+                flash("Please enter your Email ID or Username.", "danger")
                 return render_template("login.html", active_page="login")
 
-            # Flexible lookup: matches email, username, unique_id, or student profile name (case-insensitive)
+            # Flexible lookup: matches email, username, unique_id, or student profile name/roll_no/prn (case-insensitive)
             user = User.query.filter(
                 (db.func.lower(User.email) == login_id.lower()) |
                 (db.func.lower(User.username) == login_id.lower()) |
@@ -340,8 +361,12 @@ def login_view():
             ).first()
 
             if not user:
-                # Also check matching by student's display name
-                prof = StudentProfile.query.filter(db.func.lower(StudentProfile.name) == login_id.lower()).first()
+                # Also check matching by student's display name, roll_no, or prn
+                prof = StudentProfile.query.filter(
+                    (db.func.lower(StudentProfile.name) == login_id.lower()) |
+                    (db.func.lower(StudentProfile.roll_no) == login_id.lower()) |
+                    (db.func.lower(StudentProfile.prn) == login_id.lower())
+                ).first()
                 if not prof and " " in login_id:
                     query = StudentProfile.query
                     for part in login_id.lower().split():
@@ -351,9 +376,14 @@ def login_view():
                     user = prof.user
 
             if user and user.check_password(password):
+                user.last_login = datetime.utcnow()
+                user.login_count = (user.login_count or 0) + 1
+                db.session.commit()
+
                 session.permanent = True
                 session["user_id"] = user.id
                 session["username"] = user.username
+                app.logger.info(f"[LOGIN SUCCESS] User ID: {user.id} | Username: {user.username} | Email: {user.email} | Logins: {user.login_count}")
                 flash(f"Welcome back, {user.profile.name if user.profile else user.username}!", "success")
                 next_page = request.args.get("next")
                 if next_page and next_page in ["calculator_view", "tracker_view", "achievements_view", "student_info_view"]:
@@ -407,19 +437,21 @@ def logout_view():
 
 
 @app.route("/student-info", methods=["GET", "POST"])
+@app.route("/profile", methods=["GET", "POST"])
 @login_required
 def student_info_view():
     """View and update student personal/academic information."""
     user = get_current_user()
     profile = user.profile
     if not profile:
-        profile = StudentProfile(user_id=user.id)
+        profile = StudentProfile(user_id=user.id, name=user.username)
         db.session.add(profile)
         db.session.commit()
         
     if request.method == "POST":
         profile.name = request.form.get("name", "").strip() or profile.name
         profile.roll_no = request.form.get("roll_no", "").strip()
+        profile.prn = request.form.get("prn", "").strip() or profile.prn
         profile.branch = request.form.get("branch", "").strip() or profile.branch
         profile.year = request.form.get("year", "").strip() or profile.year
         profile.college = request.form.get("college", "").strip() or profile.college
@@ -521,14 +553,19 @@ def achievements_view():
             "user_id": u.id,
             "unique_id": u.unique_id or "-",
             "username": u.username,
+            "email": u.email or "-",
             "name": student_name,
             "roll_no": roll_no,
+            "prn": prof.prn if (prof and prof.prn) else "-",
             "branch": branch,
             "cgpa": cgpa_val,
             "total_credits": total_credits,
             "semesters_count": total_semesters,
             "percentage": percentage_val,
-            "performance_class": perf_class
+            "performance_class": perf_class,
+            "last_login": u.last_login,
+            "login_count": u.login_count or 0,
+            "created_at": u.created_at
         })
 
     # Sort descending by CGPA, then by total_credits descending
@@ -983,14 +1020,51 @@ def api_clear_user_data(user_id):
 
 
 
+@app.route("/api/users", methods=["GET"])
+def api_users_list():
+    """Returns directory of all users with IDs, login activity, and academic profile."""
+    users = User.query.order_by(User.id).all()
+    results = []
+    for u in users:
+        p = u.profile
+        results.append({
+            "id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "name": p.name if p else None,
+            "roll_no": p.roll_no if p else None,
+            "prn": p.prn if p else None,
+            "branch": p.branch if p else None,
+            "created_at": u.created_at.strftime('%Y-%m-%d %H:%M:%S') if u.created_at else None,
+            "last_login": u.last_login.strftime('%Y-%m-%d %H:%M:%S') if u.last_login else None,
+            "login_count": u.login_count or 0,
+            "completed_semesters": len(u.semesters)
+        })
+    return jsonify({"success": True, "total_users": len(results), "users": results})
+
+
 # -----------------------------------------------------------------------------
 # Database Setup & Seed
 # -----------------------------------------------------------------------------
 def init_db():
-    """Create tables if not already present and seed initial student data if empty."""
+    """Create tables if not already present, apply column migrations, and seed initial student data if empty."""
     with app.app_context():
         try:
             db.create_all()
+
+            # Automatic SQLite column migrations for new fields
+            try:
+                inspector = db.inspect(db.engine)
+                cols = [c["name"] for c in inspector.get_columns("users")]
+                with db.engine.connect() as conn:
+                    if "last_login" not in cols:
+                        conn.execute(db.text("ALTER TABLE users ADD COLUMN last_login DATETIME"))
+                    if "login_count" not in cols:
+                        conn.execute(db.text("ALTER TABLE users ADD COLUMN login_count INTEGER DEFAULT 0"))
+                    conn.commit()
+            except Exception as mig_err:
+                app.logger.warning(f"Migration check notice: {mig_err}")
+
             if User.query.count() == 0:
                 seed_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed_data.json")
                 if os.path.exists(seed_json):
