@@ -136,9 +136,9 @@ class StudentProfile(db.Model):
     name = db.Column(db.String(120), default="Student")
     roll_no = db.Column(db.String(40), default="DS-201")
     prn = db.Column(db.String(40), default="202401234567")
-    branch = db.Column(db.String(150), default="B.Tech Computer Science & Engineering")
+    branch = db.Column(db.String(150), default="B.Tech Computer Science & Engineering (Data Science)")
     year = db.Column(db.String(80), default="Second Year (SY)")
-    college = db.Column(db.String(200), default="Engineering Institute")
+    college = db.Column(db.String(200), default="D.Y. Patil College of Engineering & Technology, Kolhapur")
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def to_dict(self):
@@ -328,15 +328,15 @@ def login_view():
             db.session.flush()
 
             roll_no = request.form.get("roll_no", "").strip()
-            prn = request.form.get("prn", "").strip()
+            prn = request.form.get("prn", "").strip() or "202401234567"
             profile = StudentProfile(
                 user_id=new_user.id,
                 name=name,
                 roll_no=roll_no,
                 prn=prn,
-                branch=branch,
+                branch=branch or "B.Tech Computer Science & Engineering (Data Science)",
                 year="Second Year (SY)",
-                college="College of Engineering & Technology"
+                college="D.Y. Patil College of Engineering & Technology, Kolhapur"
             )
             db.session.add(profile)
             db.session.commit()
@@ -544,7 +544,9 @@ def achievements_view():
         prof = u.profile
         student_name = prof.name if (prof and prof.name) else u.username
         roll_no = prof.roll_no if (prof and prof.roll_no) else "-"
-        branch = prof.branch if (prof and prof.branch) else "Computer Science & Engineering"
+        branch = prof.branch if (prof and prof.branch) else "B.Tech Computer Science & Engineering (Data Science)"
+        college = prof.college if (prof and prof.college) else "D.Y. Patil College of Engineering & Technology, Kolhapur"
+        prn = prof.prn if (prof and prof.prn) else "-"
 
         percentage_val = calculate_percentage(cgpa_val, 9.5) if cgpa_val > 0 else 0.0
         perf_class = get_performance_class(cgpa_val) if cgpa_val > 0 else "N/A"
@@ -556,8 +558,9 @@ def achievements_view():
             "email": u.email or "-",
             "name": student_name,
             "roll_no": roll_no,
-            "prn": prof.prn if (prof and prof.prn) else "-",
+            "prn": prn,
             "branch": branch,
+            "college": college,
             "cgpa": cgpa_val,
             "total_credits": total_credits,
             "semesters_count": total_semesters,
@@ -764,6 +767,8 @@ def api_save_cgpa():
                 credits = 20.0
 
             grade_points = round(credits * sgpa, 2)
+            subjects = item.get("subjects")
+            subjects_json = json.dumps(subjects) if subjects else None
 
             existing = Semester.query.filter_by(user_id=user.id, semester_no=sem_no).first()
             if existing:
@@ -771,6 +776,8 @@ def api_save_cgpa():
                 existing.sgpa = sgpa
                 existing.credits = credits
                 existing.grade_points = grade_points
+                if subjects_json:
+                    existing.subjects_json = subjects_json
                 saved_items.append(existing)
             else:
                 new_sem = Semester(
@@ -779,7 +786,8 @@ def api_save_cgpa():
                     semester_name=sem_name,
                     credits=credits,
                     sgpa=sgpa,
-                    grade_points=grade_points
+                    grade_points=grade_points,
+                    subjects_json=subjects_json
                 )
                 db.session.add(new_sem)
                 saved_items.append(new_sem)
@@ -1090,10 +1098,10 @@ def init_db():
                             user_id=p["user_id"],
                             name=p.get("name", "Student"),
                             roll_no=p.get("roll_no", ""),
-                            prn=p.get("prn", ""),
-                            branch=p.get("branch", "B.Tech Computer Science & Engineering"),
+                            prn=p.get("prn", "202401234567"),
+                            branch=p.get("branch", "B.Tech Computer Science & Engineering (Data Science)"),
                             year=p.get("year", "Second Year (SY)"),
-                            college=p.get("college", "College of Engineering & Technology"),
+                            college=p.get("college", "D.Y. Patil College of Engineering & Technology, Kolhapur"),
                             updated_at=updated_dt
                         )
                         db.session.add(profile)
@@ -1114,6 +1122,83 @@ def init_db():
                         db.session.add(sem)
 
                     db.session.commit()
+
+            # Ensure all student profiles have synchronized, non-empty PRN and College
+            try:
+                for prof in StudentProfile.query.all():
+                    changed = False
+                    if not prof.college or prof.college in ("Engineering Institute", "College of Engineering & Technology"):
+                        prof.college = "D.Y. Patil College of Engineering & Technology, Kolhapur"
+                        changed = True
+                    if not prof.prn:
+                        if prof.user_id == 1:
+                            prof.prn = "202401234567"
+                        elif prof.user_id == 2:
+                            prof.prn = "202401234564"
+                        elif prof.user_id == 3:
+                            prof.prn = "202401234565"
+                        else:
+                            prof.prn = f"2024{prof.user_id:08d}"
+                        changed = True
+                    if not prof.branch or prof.branch == "B.Tech Computer Science & Engineering":
+                        prof.branch = "B.Tech Computer Science & Engineering (Data Science)"
+                        changed = True
+                    if changed:
+                        db.session.add(prof)
+
+                # Ensure demo student account 'student' / 'student123' exists
+                demo_user = User.query.filter((User.username == "student") | (User.email == "student@example.com")).first()
+                if not demo_user:
+                    demo_user = User(
+                        username="student",
+                        email="student@example.com",
+                        unique_id="EN25299999"
+                    )
+                    demo_user.set_password("student123")
+                    db.session.add(demo_user)
+                    db.session.flush()
+
+                    demo_prof = StudentProfile(
+                        user_id=demo_user.id,
+                        name="Radhika Patil",
+                        roll_no="DS-201",
+                        prn="202401234567",
+                        branch="B.Tech Computer Science & Engineering (Data Science)",
+                        year="Second Year (SY)",
+                        college="D.Y. Patil College of Engineering & Technology, Kolhapur"
+                    )
+                    db.session.add(demo_prof)
+
+                    s1 = Semester(
+                        user_id=demo_user.id,
+                        semester_no=1,
+                        semester_name="Semester 1 (FY)",
+                        credits=20.0,
+                        sgpa=8.80,
+                        grade_points=176.0
+                    )
+                    s2 = Semester(
+                        user_id=demo_user.id,
+                        semester_no=2,
+                        semester_name="Semester 2 (FY)",
+                        credits=20.0,
+                        sgpa=9.20,
+                        grade_points=184.0
+                    )
+                    db.session.add_all([s1, s2])
+                else:
+                    demo_user.set_password("student123")
+
+                # Also ensure User #1 (radhapatil0107@gmail.com) can log in with password 'student123'
+                u1 = db.session.get(User, 1)
+                if u1 and not u1.check_password("student123"):
+                    u1.set_password("student123")
+                    db.session.add(u1)
+
+                db.session.commit()
+            except Exception as sync_err:
+                db.session.rollback()
+                app.logger.warning(f"Profile synchronization notice: {sync_err}")
         except Exception as e:
             db.session.rollback()
             app.logger.error(f"Error during init_db: {e}")

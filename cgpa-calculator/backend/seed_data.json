@@ -31,10 +31,10 @@
       "user_id": 1,
       "name": "Radhika Krishnat Patil",
       "roll_no": "69",
-      "prn": "",
-      "branch": "B.Tech Computer Science & Engineering",
+      "prn": "202401234567",
+      "branch": "B.Tech Computer Science & Engineering (Data Science)",
       "year": "Second Year (SY)",
-      "college": "College of Engineering & Technology",
+      "college": "D.Y. Patil College of Engineering & Technology, Kolhapur",
       "updated_at": "2026-10-14 08:47:40.032106"
     },
     {
@@ -42,21 +42,21 @@
       "user_id": 2,
       "name": "Sujal Sunilkumar Sunke",
       "roll_no": "64",
-      "prn": "",
-      "branch": "B.Tech Computer Science & Engineering",
+      "prn": "202401234564",
+      "branch": "B.Tech Computer Science & Engineering (Data Science)",
       "year": "Second Year (SY)",
-      "college": "College of Engineering & Technology",
+      "college": "D.Y. Patil College of Engineering & Technology, Kolhapur",
       "updated_at": "2026-10-14 09:11:20.625997"
     },
     {
       "id": 3,
       "user_id": 3,
       "name": "Sanchita Shivanand Patil",
-      "roll_no": "",
-      "prn": "",
-      "branch": "B.Tech Computer Science & Engineering",
+      "roll_no": "72",
+      "prn": "202401234565",
+      "branch": "B.Tech Computer Science & Engineering (Data Science)",
       "year": "Second Year (SY)",
-      "college": "College of Engineering & Technology",
+      "college": "D.Y. Patil College of Engineering & Technology, Kolhapur",
       "updated_at": "2026-10-14 09:38:24.760456"
     }
   ],

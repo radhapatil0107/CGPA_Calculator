@@ -39,9 +39,11 @@
         <h3 style="font-size: 1.3rem; font-weight: 700; color: var(--text-main);">
           Academic Profile: {{ current_profile.name }}
         </h3>
-        <p style="font-size: 0.88rem; color: var(--text-muted);">
-          Roll No: <strong>{{ current_profile.roll_no or '-' }}</strong> &bull; 
-          {{ current_profile.branch }}
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 0;">
+          Roll No: <strong>{{ current_profile.roll_no or 'Not set' }}</strong> &bull; 
+          PRN: <strong>{{ current_profile.prn or 'Not set' }}</strong> &bull; 
+          {{ current_profile.branch }} &bull; 
+          <strong>{{ current_profile.college or 'D.Y. Patil College of Engineering & Technology, Kolhapur' }}</strong>
         </p>
       </div>
       <a href="{{ url_for('student_info_view') }}" class="btn btn-secondary btn-sm">

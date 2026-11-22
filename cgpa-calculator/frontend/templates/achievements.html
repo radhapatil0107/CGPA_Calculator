@@ -107,7 +107,10 @@
               {% endif %}
             </div>
             <span style="display: block; font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">
-              {{ student.email if student.email and student.email != '-' else student.username }} &bull; {{ student.branch }}
+              {{ student.email if student.email and student.email != '-' else student.username }} &bull; 
+              PRN: <strong>{{ student.prn if student.prn else 'N/A' }}</strong> &bull; 
+              {{ student.branch }} &bull; 
+              <strong>{{ student.college }}</strong>
             </span>
             <span style="display: block; font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem;">
               {% if student.last_login %}
