@@ -325,6 +325,104 @@ class TestAuthenticationAndLogin(unittest.TestCase):
         res_api_save = self.client.post("/api/save-cgpa", json={"semesters": []})
         self.assertEqual(res_api_save.status_code, 401)
 
+    def test_owner_only_delete_and_clear_authorization(self):
+        """Verify only account owner can delete or clear their own records."""
+        # Unauthenticated attempts return 401
+        self.client.get("/logout")
+        res1 = self.client.delete("/api/users/1")
+        self.assertEqual(res1.status_code, 401)
+        res2 = self.client.post("/api/users/1/clear-data")
+        self.assertEqual(res2.status_code, 401)
+
+        # Create two users in DB
+        with app.app_context():
+            u1 = User(username="user1", email="user1@example.com")
+            u1.set_password("pass123")
+            u2 = User(username="user2", email="user2@example.com")
+            u2.set_password("pass123")
+            db.session.add_all([u1, u2])
+            db.session.commit()
+            u1_id, u2_id = u1.id, u2.id
+
+        # Logged-in as user2 attempting to delete user1 returns 403
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = u2_id
+            sess["username"] = "user2"
+
+        res_del_other = self.client.delete(f"/api/users/{u1_id}")
+        self.assertEqual(res_del_other.status_code, 403)
+        self.assertIn("Access Denied", res_del_other.get_json()["error"])
+
+        res_clr_other = self.client.post(f"/api/users/{u1_id}/clear-data")
+        self.assertEqual(res_clr_other.status_code, 403)
+        self.assertIn("Access Denied", res_clr_other.get_json()["error"])
+
+    def test_permanent_cgpa_deletion_and_relogin(self):
+        """Verify deleted semesters are permanently removed from the database and do not reappear."""
+        from app import init_db, Semester, db, User
+
+        # Register dedicated user
+        email = "perm_student@example.com"
+        reg_res = self.client.post("/login", data={
+            "action": "register",
+            "name": "Permanent Student",
+            "email": email,
+            "branch": "Computer Science & Engineering",
+            "password": "Password123!",
+            "confirm_password": "Password123!"
+        }, follow_redirects=True)
+        self.assertIn(b"Welcome", reg_res.data)
+
+        with app.app_context():
+            u = User.query.filter_by(email=email).first()
+            self.assertIsNotNone(u)
+            uid = u.id
+            s = Semester(user_id=uid, semester_no=1, semester_name="Semester 1", credits=20.0, sgpa=9.5, grade_points=190.0)
+            db.session.add(s)
+            db.session.commit()
+            self.assertEqual(Semester.query.filter_by(user_id=uid).count(), 1)
+
+        # Check achievements BEFORE clearing: should have Reset My CGPA and Delete Account
+        ach_pre = self.client.get("/achievements")
+        ach_pre_html = ach_pre.data.decode("utf-8")
+        self.assertIn("Reset My CGPA", ach_pre_html)
+        self.assertIn("Delete Account", ach_pre_html)
+
+        # Clear data as owner
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = uid
+            sess["username"] = "perm_student"
+
+        res_clear = self.client.post(f"/api/users/{uid}/clear-data")
+        self.assertEqual(res_clear.status_code, 200)
+        self.assertTrue(res_clear.get_json()["success"])
+
+        # Check DB
+        with app.app_context():
+            self.assertEqual(Semester.query.filter_by(user_id=uid).count(), 0)
+
+        # Re-run init_db (simulating server reboot)
+        with app.app_context():
+            init_db()
+            self.assertEqual(Semester.query.filter_by(user_id=uid).count(), 0)
+
+        # Re-login and check tracker and API
+        self.client.get("/logout")
+        self.client.post("/login", data={
+            "action": "login",
+            "email": email,
+            "password": "Password123!"
+        }, follow_redirects=True)
+
+        sem_res = self.client.get("/api/semesters")
+        self.assertEqual(len(sem_res.get_json()["semesters"]), 0)
+
+        # Achievements check: since semesters are 0, Delete Account is shown for owner
+        ach_res = self.client.get("/achievements")
+        ach_html = ach_res.data.decode("utf-8")
+        self.assertIn("Delete Account", ach_html)
+        self.assertIn("0.00", ach_html)
+
 
 if __name__ == "__main__":
     unittest.main()

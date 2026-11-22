@@ -387,6 +387,31 @@ async function confirmDeleteSemester(id, semName) {
   }
 }
 
+/**
+ * Permanently clear all semesters for current user
+ */
+async function clearAllTrackerSemesters() {
+  if (!confirm("Are you sure you want to permanently delete ALL saved semesters?\n\nThis will erase your semester records from the database permanently and reset your CGPA to 0.00.")) {
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/users/me/clear-data", {
+      method: "POST"
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || "Failed to reset semesters.");
+    }
+
+    alert(data.message);
+    window.location.reload();
+  } catch (err) {
+    alert("Clear data failed: " + err.message);
+  }
+}
+
 function escapeHtml(str) {
   if (!str) return "";
   return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");

@@ -1056,9 +1056,20 @@ def api_student_info():
 
 
 @app.route("/api/users/<int:user_id>", methods=["DELETE"])
-def api_delete_user(user_id):
-    """Delete a user account and their records completely from achievements and database."""
-    user = User.query.get(user_id)
+@app.route("/api/users/me", methods=["DELETE"])
+def api_delete_user(user_id=None):
+    """Delete a user account and their records completely from achievements and database.
+    Strictly authorized: users can only delete their own account.
+    """
+    current = get_current_user()
+    if not current:
+        return jsonify({"success": False, "error": "Authentication required. Please log in to manage your record."}), 401
+
+    target_id = current.id if user_id is None else user_id
+    if current.id != target_id:
+        return jsonify({"success": False, "error": "Access Denied: You are only permitted to delete your own student record."}), 403
+
+    user = db.session.get(User, target_id)
     if not user:
         return jsonify({"success": False, "error": "User record not found."}), 404
 
@@ -1066,6 +1077,7 @@ def api_delete_user(user_id):
         user_name = user.profile.name if user.profile else user.username
         is_current = session.get("user_id") == user.id
 
+        # Permanently purge related records and user from the database via cascade
         db.session.delete(user)
         db.session.commit()
 
@@ -1074,7 +1086,7 @@ def api_delete_user(user_id):
 
         return jsonify({
             "success": True,
-            "message": f"Student '{user_name}' has been successfully removed from Achievements.",
+            "message": f"Student '{user_name}' and all associated records have been permanently deleted from the database.",
             "logged_out": is_current
         })
     except Exception as e:
@@ -1083,20 +1095,31 @@ def api_delete_user(user_id):
 
 
 @app.route("/api/users/<int:user_id>/clear-data", methods=["POST", "DELETE"])
-def api_clear_user_data(user_id):
-    """Clear all saved semester and CGPA data for a user, resetting their score to 0.00 in Achievements."""
-    user = User.query.get(user_id)
+@app.route("/api/users/me/clear-data", methods=["POST", "DELETE"])
+def api_clear_user_data(user_id=None):
+    """Clear all saved semester and CGPA data for a user, resetting their score to 0.00 in Achievements.
+    Strictly authorized: users can only reset or clear their own CGPA data.
+    """
+    current = get_current_user()
+    if not current:
+        return jsonify({"success": False, "error": "Authentication required. Please log in to manage your data."}), 401
+
+    target_id = current.id if user_id is None else user_id
+    if current.id != target_id:
+        return jsonify({"success": False, "error": "Access Denied: You are only permitted to reset or modify your own CGPA data."}), 403
+
+    user = db.session.get(User, target_id)
     if not user:
         return jsonify({"success": False, "error": "User record not found."}), 404
 
     try:
         user_name = user.profile.name if user.profile else user.username
-        Semester.query.filter_by(user_id=user.id).delete()
+        deleted_count = Semester.query.filter_by(user_id=user.id).delete()
         db.session.commit()
 
         return jsonify({
             "success": True,
-            "message": f"CGPA and semester records for '{user_name}' have been cleared."
+            "message": f"CGPA and semester records ({deleted_count} entries) for '{user_name}' have been permanently deleted from the database."
         })
     except Exception as e:
         db.session.rollback()
@@ -1207,113 +1230,13 @@ def init_db():
                         prof.college = "D.Y. Patil College of Engineering & Technology, Kolhapur"
                         changed = True
                     if not prof.prn:
-                        if prof.user_id == 1:
-                            prof.prn = "202401234567"
-                        elif prof.user_id == 2:
-                            prof.prn = "202401234564"
-                        elif prof.user_id == 3:
-                            prof.prn = "202401234565"
-                        else:
-                            prof.prn = f"2024{prof.user_id:08d}"
+                        prof.prn = f"2024{prof.user_id:08d}"
                         changed = True
                     if not prof.branch or prof.branch == "B.Tech Computer Science & Engineering":
                         prof.branch = "B.Tech Computer Science & Engineering (Data Science)"
                         changed = True
                     if changed:
                         db.session.add(prof)
-
-                # Ensure demo student account 'student' / 'student123' exists
-                demo_user = User.query.filter((User.username == "student") | (User.email == "student@example.com")).first()
-                if not demo_user:
-                    demo_user = User(
-                        username="student",
-                        email="student@example.com",
-                        unique_id="EN25299999"
-                    )
-                    demo_user.set_password("student123")
-                    db.session.add(demo_user)
-                    db.session.flush()
-
-                    demo_prof = StudentProfile(
-                        user_id=demo_user.id,
-                        name="Radhika Patil",
-                        roll_no="DS-201",
-                        prn="202401234567",
-                        branch="B.Tech Computer Science & Engineering (Data Science)",
-                        year="Second Year (SY)",
-                        college="D.Y. Patil College of Engineering & Technology, Kolhapur"
-                    )
-                    db.session.add(demo_prof)
-
-                    s1 = Semester(
-                        user_id=demo_user.id,
-                        semester_no=1,
-                        semester_name="Semester 1 (FY)",
-                        credits=20.0,
-                        sgpa=8.80,
-                        grade_points=176.0
-                    )
-                    s2 = Semester(
-                        user_id=demo_user.id,
-                        semester_no=2,
-                        semester_name="Semester 2 (FY)",
-                        credits=20.0,
-                        sgpa=9.20,
-                        grade_points=184.0
-                    )
-                    db.session.add_all([s1, s2])
-                else:
-                    demo_user.set_password("student123")
-
-                # Ensure demo student account 'sahil' / 'student123' exists
-                sahil_user = User.query.filter((User.username == "sahil") | (User.email == "sahiltaware415@gmail.com")).first()
-                if not sahil_user:
-                    sahil_user = User(
-                        username="sahil",
-                        email="sahiltaware415@gmail.com",
-                        unique_id="EN25299998"
-                    )
-                    sahil_user.set_password("student123")
-                    db.session.add(sahil_user)
-                    db.session.flush()
-
-                    sahil_prof = StudentProfile(
-                        user_id=sahil_user.id,
-                        name="Sahil Taware",
-                        roll_no="DS-202",
-                        prn="202401234568",
-                        branch="B.Tech Computer Science & Engineering (Data Science)",
-                        year="Second Year (SY)",
-                        college="D.Y. Patil College of Engineering & Technology, Kolhapur"
-                    )
-                    db.session.add(sahil_prof)
-
-                    s1 = Semester(
-                        user_id=sahil_user.id,
-                        semester_no=1,
-                        semester_name="Semester 1 (FY)",
-                        credits=20.0,
-                        sgpa=8.85,
-                        grade_points=177.0
-                    )
-                    s2 = Semester(
-                        user_id=sahil_user.id,
-                        semester_no=2,
-                        semester_name="Semester 2 (FY)",
-                        credits=20.0,
-                        sgpa=9.15,
-                        grade_points=183.0
-                    )
-                    db.session.add_all([s1, s2])
-                else:
-                    sahil_user.set_password("student123")
-
-                # Ensure demo accounts (radhapatil0107, sujalsunke26, sanchitapatil) have working password student123
-                for uid in [1, 2, 3]:
-                    u = db.session.get(User, uid)
-                    if u and not u.check_password("student123"):
-                        u.set_password("student123")
-                        db.session.add(u)
 
                 db.session.commit()
             except Exception as sync_err:

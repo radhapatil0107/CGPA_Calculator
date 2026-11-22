@@ -264,10 +264,15 @@
     <h3 class="card-title" style="margin-bottom: 0;">
       <span>&#128203; Saved Semester History</span>
     </h3>
-    <div style="display: flex; gap: 0.5rem;">
+    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
       <a href="{{ url_for('calculator_view') }}" class="btn btn-secondary btn-sm">
         &#9889; Calculate New Semester
       </a>
+      {% if semesters %}
+      <button type="button" class="btn btn-danger-outline btn-sm" onclick="clearAllTrackerSemesters()" title="Permanently delete all semester records and reset CGPA to 0.00">
+        🧹 Reset All Semesters
+      </button>
+      {% endif %}
     </div>
   </div>
 
