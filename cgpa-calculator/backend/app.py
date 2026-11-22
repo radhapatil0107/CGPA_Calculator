@@ -41,12 +41,13 @@ static_path = os.path.join(project_root, "frontend", "static")
 # Handle read-only filesystem environments (e.g. Vercel Serverless)
 is_vercel = bool(os.environ.get("VERCEL"))
 if is_vercel:
-    temp_dir = tempfile.gettempdir()
-    instance_path = temp_dir
-    db_file = os.path.join(temp_dir, "grade_calculator.db").replace("\\", "/")
-    if not db_file.startswith("/"):
-        db_file = "/" + db_file
-    database_url = os.environ.get("DATABASE_URL", f"sqlite://{db_file}")
+    if os.name == "nt":
+        instance_path = tempfile.gettempdir()
+        db_path = os.path.join(tempfile.gettempdir(), "grade_calculator.db").replace("\\", "/")
+        database_url = os.environ.get("DATABASE_URL", f"sqlite:///{db_path}")
+    else:
+        instance_path = "/tmp"
+        database_url = os.environ.get("DATABASE_URL", "sqlite:////tmp/grade_calculator.db")
 else:
     instance_path = os.path.join(project_root, "instance")
     try:
@@ -970,7 +971,10 @@ def api_clear_user_data(user_id):
 def init_db():
     """Create tables if not already present."""
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+        except Exception as e:
+            app.logger.error(f"Error during db.create_all: {e}")
 
 
 # Initialize tables when starting
