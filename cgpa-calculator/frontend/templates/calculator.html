@@ -13,6 +13,25 @@
   </p>
 </div>
 
+<!-- Student Identity Banner (When logged in) -->
+{% if current_user and current_profile %}
+<div class="card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem; background: var(--bg-secondary); border-left: 4px solid var(--primary);">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+    <div>
+      <strong style="color: var(--text-main); font-size: 1.05rem;">👨‍🎓 {{ current_profile.name }}</strong>
+      <span style="color: var(--text-muted); font-size: 0.88rem; margin-left: 0.5rem;">
+        Roll No: <strong>{{ current_profile.roll_no or 'N/A' }}</strong> &bull; 
+        {{ current_profile.branch }} &bull; 
+        <strong>{{ current_profile.college or 'College of Engineering & Technology' }}</strong>
+      </span>
+    </div>
+    <a href="{{ url_for('student_info_view') }}" class="btn btn-secondary btn-sm" style="font-size: 0.8rem;">
+      &#9998; Edit Profile
+    </a>
+  </div>
+</div>
+{% endif %}
+
 <!-- Two Main Navigation Tabs -->
 <div class="calc-nav-container">
   <button type="button" class="calc-nav-tab active" id="tabBtnDypcet" onclick="switchMainTab('dypcet')">
@@ -313,11 +332,10 @@
 
 <!-- Printable Grade Sheet Component (Visible only when printing) -->
 <div id="printableResultContainer" class="printable-header">
-  <h2>STUDENT ACADEMIC GRADE REPORT</h2>
+  <h2>{{ current_profile.college if current_profile and current_profile.college else 'College of Engineering & Technology' }}</h2>
   <p style="font-weight: 700; margin-top: 4px;" id="printReportTitle">OFFICIAL ACADEMIC GRADE REPORT</p>
   <div style="margin: 15px 0; text-align: left; font-size: 10pt; line-height: 1.6;">
-    <p><strong>Student Name:</strong> {{ current_profile.name if current_profile else 'Student' }}</p>
-    <p><strong>Roll No:</strong> {{ current_profile.roll_no if current_profile and current_profile.roll_no else 'N/A' }}</p>
+    <p><strong>Student Name:</strong> {{ current_profile.name if current_profile else 'Student' }} &bull; <strong>Roll No:</strong> {{ current_profile.roll_no if current_profile and current_profile.roll_no else 'N/A' }}</p>
     <p><strong>Branch:</strong> {{ current_profile.branch if current_profile and current_profile.branch else 'B.Tech Computer Science & Engineering' }} | <strong>Academic Period:</strong> <span id="printSemName">Academic Year</span></p>
   </div>
   <table class="table" id="printBreakdownTable" style="margin-top: 15px;">

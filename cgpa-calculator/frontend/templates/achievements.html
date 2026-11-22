@@ -99,12 +99,24 @@
             {% endif %}
           </td>
           <td>
-            <strong>{{ student.name }}</strong>
-            {% if current_user and student.user_id == current_user.id %}
-              <span class="badge badge-A-plus" style="font-size: 0.72rem; margin-left: 0.35rem;">YOU</span>
-            {% endif %}
-            <span style="display: block; font-size: 0.78rem; color: var(--text-muted);">
-              {{ student.branch }}
+            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+              <strong>{{ student.name }}</strong>
+              <span class="badge" style="font-size: 0.7rem; padding: 0.15rem 0.45rem; background: var(--bg-secondary); color: var(--text-muted); font-weight: 600;">ID #{{ student.user_id }}</span>
+              {% if current_user and student.user_id == current_user.id %}
+                <span class="badge badge-A-plus" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">YOU</span>
+              {% endif %}
+            </div>
+            <span style="display: block; font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem;">
+              {{ student.email if student.email and student.email != '-' else student.username }} &bull; 
+              {{ student.branch }} &bull; 
+              <strong>{{ student.college }}</strong>
+            </span>
+            <span style="display: block; font-size: 0.72rem; color: var(--text-muted); margin-top: 0.15rem;">
+              {% if student.created_at %}
+                🕒 Registered on {{ student.created_at.strftime('%d %b %Y') }}
+              {% else %}
+                🕒 Active Student
+              {% endif %}
             </span>
           </td>
           <td style="text-align: center;">{{ student.roll_no }}</td>
@@ -122,16 +134,20 @@
             </span>
           </td>
           <td style="text-align: center;">
+            {% if current_user and student.user_id == current_user.id %}
             <div style="display: flex; gap: 0.35rem; justify-content: center; flex-wrap: wrap;">
               {% if student.semesters_count > 0 %}
-              <button type="button" class="btn btn-secondary btn-sm" style="font-size: 0.76rem; padding: 0.25rem 0.5rem;" onclick="clearUserAchievement({{ student.user_id }}, '{{ student.name }}')" title="Reset CGPA to 0.00">
+              <button type="button" class="btn btn-secondary btn-sm" style="font-size: 0.76rem; padding: 0.25rem 0.5rem;" onclick="clearUserAchievement({{ student.user_id }}, '{{ student.name }}')" title="Reset My CGPA">
                 🧹 Reset
               </button>
               {% endif %}
-              <button type="button" class="btn btn-danger-outline btn-sm" style="font-size: 0.76rem; padding: 0.25rem 0.5rem;" onclick="deleteUserAchievement({{ student.user_id }}, '{{ student.name }}')" title="Delete Student Record Completely">
+              <button type="button" class="btn btn-danger-outline btn-sm" style="font-size: 0.76rem; padding: 0.25rem 0.5rem;" onclick="deleteUserAchievement({{ student.user_id }}, '{{ student.name }}')" title="Delete My Student Record">
                 🗑️ Delete
               </button>
             </div>
+            {% else %}
+            <span style="font-size: 0.76rem; color: var(--text-muted); font-style: italic;">Protected</span>
+            {% endif %}
           </td>
         </tr>
         {% endfor %}

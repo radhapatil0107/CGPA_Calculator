@@ -138,7 +138,7 @@
     <!-- Header -->
     <div class="report-header">
       <h1>{{ profile.college if (profile and profile.college) else 'Student Academic Grade Portal' }}</h1>
-      <h2>Autonomous Engineering Degree &bull; Academic Transcript</h2>
+      <h2>Department of {{ profile.branch if (profile and profile.branch) else 'Computer Science & Engineering' }} &bull; Academic Transcript</h2>
       <p>Student Academic Performance &amp; Evaluation Record</p>
       <div style="display: inline-block; margin-top: 0.75rem; padding: 0.25rem 0.75rem; background: #e0e7ff; color: #4338ca; border-radius: 9999px; font-weight: 700; font-size: 0.82rem;">
         {% if report_type == 'semester' %}
@@ -153,7 +153,8 @@
     <div class="student-info-grid">
       <div><strong>Student Name:</strong> {{ profile.name if profile else 'Student' }}</div>
       <div><strong>Roll Number:</strong> {{ profile.roll_no if profile and profile.roll_no else 'N/A' }}</div>
-      <div><strong>Branch:</strong> {{ profile.branch if profile else 'B.Tech Computer Science & Engineering' }}</div>
+      <div><strong>College:</strong> {{ profile.college if (profile and profile.college) else 'College of Engineering & Technology' }}</div>
+      <div><strong>Branch:</strong> {{ profile.branch if (profile and profile.branch) else 'B.Tech Computer Science & Engineering' }}</div>
       <div><strong>Academic Year / Class:</strong> {{ profile.year if profile else 'Second Year (SY)' }}</div>
       <div><strong>Issue Date:</strong> {{ now.strftime('%d %B %Y') }}</div>
     </div>

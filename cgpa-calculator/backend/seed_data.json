@@ -3,7 +3,7 @@
     {
       "id": 1,
       "username": "radhapatil0107@gmail.com",
-      "password_hash": "scrypt:32768:8:1$g26cz20IU07rFuHQ$e77bcdf20db751261340909495ebeeb080c307aadb09bc91fdc8db5632762b36cc810b09442290b19102d99d0ad90dbd298021eeb7d68522bd4a23521380f71f",
+      "password_hash": "scrypt:32768:8:1$ztrK976cpj4MMqOE$359b80fc86425a87b09a91f0026deeff4d3bf792c28e661715b8c23204ab3bd4b23f083c329c3435f7aa58323d248ac35fd517a959373f715a25fead770ad8fa",
       "created_at": "2026-10-14 08:47:23.980158",
       "unique_id": "EN25276191",
       "email": "radhapatil0107@gmail.com"
@@ -52,7 +52,7 @@
       "id": 3,
       "user_id": 3,
       "name": "Sanchita Shivanand Patil",
-      "roll_no": "",
+      "roll_no": "72",
       "prn": "",
       "branch": "B.Tech Computer Science & Engineering",
       "year": "Second Year (SY)",

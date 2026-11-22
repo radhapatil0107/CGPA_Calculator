@@ -21,12 +21,34 @@
       <button type="button" class="btn btn-secondary" onclick="openAddModal()">
         + Add Semester Manually
       </button>
+      <a href="{{ url_for('target_view') }}" class="btn btn-secondary" title="Plan Remaining Semesters">
+        &#127919; Target Planner
+      </a>
       <a href="{{ url_for('transcript_report') }}" class="btn btn-outline" target="_blank">
         &#128438; Print Official Transcript
       </a>
     </div>
   </div>
 </div>
+
+<!-- Student Identity Banner (When logged in) -->
+{% if current_user and current_profile %}
+<div class="card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem; background: var(--bg-secondary); border-left: 4px solid var(--primary);">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+    <div>
+      <strong style="color: var(--text-main); font-size: 1.05rem;">👨‍🎓 {{ current_profile.name }}</strong>
+      <span style="color: var(--text-muted); font-size: 0.88rem; margin-left: 0.5rem;">
+        Roll No: <strong>{{ current_profile.roll_no or 'N/A' }}</strong> &bull; 
+        {{ current_profile.branch }} &bull; 
+        <strong>{{ current_profile.college or 'College of Engineering & Technology' }}</strong>
+      </span>
+    </div>
+    <a href="{{ url_for('student_info_view') }}" class="btn btn-secondary btn-sm" style="font-size: 0.8rem;">
+      &#9998; Edit Profile
+    </a>
+  </div>
+</div>
+{% endif %}
 
 <!-- Metrics Cards Summary -->
 <div class="grid-4" style="margin-bottom: 2rem;">
@@ -116,6 +138,21 @@
         </tr>
       </thead>
       <tbody id="cgpaCalcBody">
+        {% if semesters and semesters|length > 0 %}
+          {% for sem in semesters %}
+          <tr class="cgpa-calc-row">
+            <td>
+              <input type="text" class="form-control cgpa-sem-name" placeholder="e.g. Semester {{ sem.semester_no }}" value="{{ sem.semester_name or 'Semester ' ~ sem.semester_no }}" required>
+            </td>
+            <td>
+              <input type="text" inputmode="decimal" class="form-control cgpa-sem-sgpa" placeholder="e.g. 8.50" value="{{ '%.2f'|format(sem.sgpa) }}" required>
+            </td>
+            <td style="text-align: center;">
+              <button type="button" class="btn btn-danger-outline btn-sm" onclick="removeCgpaCalcRow(this)" title="Remove">&times;</button>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
         <!-- Preset Row 1: Semester 1 -->
         <tr class="cgpa-calc-row">
           <td>
@@ -164,6 +201,7 @@
             <button type="button" class="btn btn-danger-outline btn-sm" onclick="removeCgpaCalcRow(this)" title="Remove">&times;</button>
           </td>
         </tr>
+        {% endif %}
       </tbody>
     </table>
   </div>

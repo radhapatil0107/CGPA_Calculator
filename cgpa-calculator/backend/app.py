@@ -250,9 +250,41 @@ def index():
     )
 
 
+# -----------------------------------------------------------------------------
+# Database Synchronization Helper
+# -----------------------------------------------------------------------------
+def sync_seed_data(user_id: int, new_password_hash: str):
+    """Keep seed_data.json and seed_grade_calculator.db updated so Vercel container recycles preserve password changes."""
+    backend_dir = os.path.dirname(os.path.abspath(__file__))
+    seed_json = os.path.join(backend_dir, "seed_data.json")
+    if os.path.exists(seed_json):
+        try:
+            with open(seed_json, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            for u in data.get("users", []):
+                if u.get("id") == user_id:
+                    u["password_hash"] = new_password_hash
+            with open(seed_json, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, default=str)
+        except Exception as e:
+            app.logger.error(f"Error syncing seed_data.json: {e}")
+
+    seed_db = os.path.join(backend_dir, "seed_grade_calculator.db")
+    if os.path.exists(seed_db):
+        try:
+            import sqlite3
+            con = sqlite3.connect(seed_db)
+            cur = con.cursor()
+            cur.execute("UPDATE users SET password_hash = ? WHERE id = ?", (new_password_hash, user_id))
+            con.commit()
+            con.close()
+        except Exception as e:
+            app.logger.error(f"Error syncing seed_grade_calculator.db: {e}")
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login_view():
-    """User authentication: Sign In via Email, Registration with Unique ID & Profile."""
+    """User authentication: Sign In, Registration, and Password Reset with Profile."""
     if get_current_user():
         return redirect(url_for("index"))
 
@@ -262,76 +294,13 @@ def login_view():
         
     if request.method == "POST":
         action = request.form.get("action", "login")
-
-        if action == "reset_password":
-            reset_id = request.form.get("email", "").strip()
-            new_password = request.form.get("new_password", "")
-            confirm_password = request.form.get("confirm_password", "")
-
-            if not reset_id:
-                flash("Please enter your registered Email ID, Username, or Unique ID.", "danger")
-                return render_template("login.html", active_page="login", auth_mode="reset")
-
-            if not new_password:
-                flash("Please enter a new password.", "danger")
-                return render_template("login.html", active_page="login", auth_mode="reset")
-
-            if new_password != confirm_password:
-                flash("Passwords do not match. Please try again.", "danger")
-                return render_template("login.html", active_page="login", auth_mode="reset")
-
-            # Look up user by email, username, unique_id, email prefix, or name
-            user = User.query.filter(
-                (db.func.lower(User.email) == reset_id.lower()) |
-                (db.func.lower(User.username) == reset_id.lower()) |
-                (db.func.lower(User.unique_id) == reset_id.lower())
-            ).first()
-
-            if not user:
-                for u in User.query.all():
-                    if u.email and u.email.split("@")[0].lower() == reset_id.lower():
-                        user = u
-                        break
-
-            if not user:
-                prof = StudentProfile.query.filter(db.func.lower(StudentProfile.name).contains(reset_id.lower())).first()
-                if prof and prof.user:
-                    user = prof.user
-
-            if not user:
-                flash("No registered student found matching this Email ID or Unique ID.", "danger")
-                return render_template("login.html", active_page="login", auth_mode="reset")
-
-            # Update password
-            user.set_password(new_password)
-            db.session.commit()
-
-            # Sync seed_data.json so updated hash is persisted into future cold-starts
-            try:
-                seed_json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed_data.json")
-                if os.path.exists(seed_json_path):
-                    with open(seed_json_path, "r", encoding="utf-8") as f:
-                        sdata = json.load(f)
-                    for su in sdata.get("users", []):
-                        if su["id"] == user.id:
-                            su["password_hash"] = user.password_hash
-                    with open(seed_json_path, "w", encoding="utf-8") as f:
-                        json.dump(sdata, f, indent=2, default=str)
-            except Exception:
-                pass
-
-            session.permanent = True
-            session["user_id"] = user.id
-            session["username"] = user.username
-            flash(f"Password reset successfully! Welcome back, {user.profile.name if user.profile else user.username}!", "success")
-            return redirect(url_for("index"))
-
-        password = request.form.get("password", "")
-        if not password:
-            flash("Please provide your password.", "danger")
-            return render_template("login.html", active_page="login", auth_mode=action)
-
+        
         if action == "register":
+            password = request.form.get("password", "")
+            if not password:
+                flash("Please provide your password.", "danger")
+                return render_template("login.html", active_page="login", auth_mode="register")
+
             name = request.form.get("name", "").strip()
             email = request.form.get("email", "").strip().lower()
             branch = request.form.get("branch", "").strip()
@@ -389,46 +358,109 @@ def login_view():
             flash(f"Welcome, {name}! Your account has been registered successfully.", "success")
             return redirect(url_for("index"))
 
-        else:  # Login
-            login_id = request.form.get("email", "").strip()
-            if not login_id:
-                flash("Please enter your Email ID.", "danger")
-                return render_template("login.html", active_page="login")
+        elif action == "reset_password":
+            reset_id = request.form.get("email", "").strip()
+            new_password = request.form.get("new_password", "")
+            confirm_new_password = request.form.get("confirm_password", "")
 
-            # Flexible lookup: matches email, username, unique_id, email prefix, or student profile name (case-insensitive)
+            if not reset_id:
+                flash("Please enter your registered Email ID or Unique ID.", "danger")
+                return render_template("login.html", active_page="login", auth_mode="reset")
+
+            if not new_password:
+                flash("Please enter a new password.", "danger")
+                return render_template("login.html", active_page="login", auth_mode="reset")
+
+            if new_password != confirm_new_password:
+                flash("New passwords do not match. Please try again.", "danger")
+                return render_template("login.html", active_page="login", auth_mode="reset")
+
+            clean_reset_id = reset_id.lower()
             user = User.query.filter(
-                (db.func.lower(User.email) == login_id.lower()) |
-                (db.func.lower(User.username) == login_id.lower()) |
-                (db.func.lower(User.unique_id) == login_id.lower())
+                (db.func.lower(User.email) == clean_reset_id) |
+                (db.func.lower(User.username) == clean_reset_id) |
+                (db.func.lower(User.unique_id) == clean_reset_id)
             ).first()
 
-            # Fallback 1: match email prefix before '@' (e.g. 'radhapatil0107' for 'radhapatil0107@gmail.com')
             if not user:
-                for u in User.query.all():
-                    if u.email and u.email.split("@")[0].lower() == login_id.lower():
-                        user = u
-                        break
+                user = User.query.filter(
+                    (db.func.lower(User.email).startswith(clean_reset_id + "@")) |
+                    (db.func.lower(User.username).startswith(clean_reset_id + "@"))
+                ).first()
 
-            # Fallback 2: match student profile name (exact or substring)
             if not user:
-                prof = StudentProfile.query.filter(db.func.lower(StudentProfile.name) == login_id.lower()).first()
+                prof = StudentProfile.query.filter(db.func.lower(StudentProfile.name) == clean_reset_id).first()
                 if not prof:
-                    prof = StudentProfile.query.filter(db.func.lower(StudentProfile.name).contains(login_id.lower())).first()
-                if not prof and " " in login_id:
+                    prof = StudentProfile.query.filter(db.func.lower(StudentProfile.name).contains(clean_reset_id)).first()
+                if not prof and " " in clean_reset_id:
                     query = StudentProfile.query
-                    for part in login_id.lower().split():
+                    for part in clean_reset_id.split():
                         query = query.filter(db.func.lower(StudentProfile.name).contains(part))
                     prof = query.first()
                 if prof and prof.user:
                     user = prof.user
 
-            # Check password (checking both exact and trimmed)
-            is_valid = False
-            if user:
-                if user.check_password(password) or user.check_password(password.strip()):
-                    is_valid = True
+            if not user:
+                flash(f"No registered student found matching '{reset_id}'.", "danger")
+                return render_template("login.html", active_page="login", auth_mode="reset")
 
-            if is_valid:
+            user.set_password(new_password)
+            db.session.commit()
+
+            try:
+                sync_seed_data(user.id, user.password_hash)
+            except Exception:
+                pass
+
+            session.permanent = True
+            session["user_id"] = user.id
+            session["username"] = user.username
+            flash(f"Password updated successfully! Welcome back, {user.profile.name if user.profile else user.username}.", "success")
+            return redirect(url_for("index"))
+
+        else:  # Login
+            login_id = request.form.get("email", "").strip()
+            password = request.form.get("password", "")
+
+            if not login_id:
+                flash("Please enter your Email ID or Username.", "danger")
+                return render_template("login.html", active_page="login")
+
+            if not password:
+                flash("Please enter your password.", "danger")
+                return render_template("login.html", active_page="login")
+
+            clean_id = login_id.lower()
+            user = User.query.filter(
+                (db.func.lower(User.email) == clean_id) |
+                (db.func.lower(User.username) == clean_id) |
+                (db.func.lower(User.unique_id) == clean_id)
+            ).first()
+
+            if not user:
+                # Check email prefix
+                user = User.query.filter(
+                    (db.func.lower(User.email).startswith(clean_id + "@")) |
+                    (db.func.lower(User.username).startswith(clean_id + "@"))
+                ).first()
+
+            if not user:
+                prof = StudentProfile.query.filter(db.func.lower(StudentProfile.name) == clean_id).first()
+                if not prof:
+                    prof = StudentProfile.query.filter(db.func.lower(StudentProfile.name).contains(clean_id)).first()
+                if not prof and " " in clean_id:
+                    query = StudentProfile.query
+                    for part in clean_id.split():
+                        query = query.filter(db.func.lower(StudentProfile.name).contains(part))
+                    prof = query.first()
+                if prof and prof.user:
+                    user = prof.user
+
+            is_valid_pw = user.check_password(password) if user else False
+            if not is_valid_pw and user and password.strip() != password:
+                is_valid_pw = user.check_password(password.strip())
+
+            if user and is_valid_pw:
                 session.permanent = True
                 session["user_id"] = user.id
                 session["username"] = user.username
@@ -459,17 +491,9 @@ def api_resolve_email():
         (db.func.lower(User.username) == identifier.lower()) |
         (db.func.lower(User.unique_id) == identifier.lower())
     ).first()
-
-    if not user:
-        for u in User.query.all():
-            if u.email and u.email.split("@")[0].lower() == identifier.lower():
-                user = u
-                break
     
     if not user:
         prof = StudentProfile.query.filter(db.func.lower(StudentProfile.name) == identifier.lower()).first()
-        if not prof:
-            prof = StudentProfile.query.filter(db.func.lower(StudentProfile.name).contains(identifier.lower())).first()
         if not prof and " " in identifier:
             query = StudentProfile.query
             for part in identifier.lower().split():
@@ -607,14 +631,17 @@ def achievements_view():
             "user_id": u.id,
             "unique_id": u.unique_id or "-",
             "username": u.username,
+            "email": u.email or "-",
             "name": student_name,
             "roll_no": roll_no,
             "branch": branch,
+            "college": prof.college if (prof and prof.college) else "College of Engineering & Technology",
             "cgpa": cgpa_val,
             "total_credits": total_credits,
             "semesters_count": total_semesters,
             "percentage": percentage_val,
-            "performance_class": perf_class
+            "performance_class": perf_class,
+            "created_at": u.created_at
         })
 
     # Sort descending by CGPA, then by total_credits descending
@@ -1022,25 +1049,28 @@ def api_student_info():
 
 @app.route("/api/users/<int:user_id>", methods=["DELETE"])
 def api_delete_user(user_id):
-    """Delete a user account and their records completely from achievements and database."""
+    """Delete a user account and their records completely from achievements and database (owner only)."""
+    current = get_current_user()
+    if not current:
+        return jsonify({"success": False, "error": "Authentication required. Please sign in as this student to delete your record."}), 401
+
+    if current.id != user_id:
+        return jsonify({"success": False, "error": "Permission denied: You can only delete your own student record. You must log in as that student."}), 403
+
     user = User.query.get(user_id)
     if not user:
         return jsonify({"success": False, "error": "User record not found."}), 404
 
     try:
         user_name = user.profile.name if user.profile else user.username
-        is_current = session.get("user_id") == user.id
-
         db.session.delete(user)
         db.session.commit()
-
-        if is_current:
-            session.clear()
+        session.clear()
 
         return jsonify({
             "success": True,
-            "message": f"Student '{user_name}' has been successfully removed from Achievements.",
-            "logged_out": is_current
+            "message": f"Your student record '{user_name}' has been successfully deleted.",
+            "logged_out": True
         })
     except Exception as e:
         db.session.rollback()
@@ -1049,7 +1079,14 @@ def api_delete_user(user_id):
 
 @app.route("/api/users/<int:user_id>/clear-data", methods=["POST", "DELETE"])
 def api_clear_user_data(user_id):
-    """Clear all saved semester and CGPA data for a user, resetting their score to 0.00 in Achievements."""
+    """Clear all saved semester and CGPA data for a user, resetting their score to 0.00 in Achievements (owner only)."""
+    current = get_current_user()
+    if not current:
+        return jsonify({"success": False, "error": "Authentication required. Please sign in as this student to reset your CGPA."}), 401
+
+    if current.id != user_id:
+        return jsonify({"success": False, "error": "Permission denied: You can only reset your own CGPA records. You must log in as that student."}), 403
+
     user = User.query.get(user_id)
     if not user:
         return jsonify({"success": False, "error": "User record not found."}), 404
@@ -1061,7 +1098,7 @@ def api_clear_user_data(user_id):
 
         return jsonify({
             "success": True,
-            "message": f"CGPA and semester records for '{user_name}' have been cleared."
+            "message": f"CGPA and semester records for '{user_name}' have been reset to 0.00."
         })
     except Exception as e:
         db.session.rollback()

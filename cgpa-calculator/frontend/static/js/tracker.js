@@ -70,6 +70,16 @@ function renderTrackerUI(data) {
 
   // Render Progression Chart
   renderProgressionChart(semesters);
+
+  // Auto-populate multi-semester calculator if currently empty
+  if (semesters && semesters.length > 0) {
+    const inputs = document.querySelectorAll(".cgpa-sem-sgpa");
+    let hasValue = false;
+    inputs.forEach(inp => { if (inp.value && inp.value.trim()) hasValue = true; });
+    if (!hasValue) {
+      loadSavedSemestersIntoCalculator();
+    }
+  }
 }
 
 /**

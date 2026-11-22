@@ -36,6 +36,10 @@
     <form id="loginForm" method="POST" action="{{ url_for('login_view') }}" autocomplete="off">
       <input type="hidden" name="action" value="login">
 
+      <!-- Anti-autofill decoy inputs to prevent browser password managers from pre-filling credentials -->
+      <input type="text" name="fake_user_trap" style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <input type="password" name="fake_pass_trap" style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;" tabindex="-1" autocomplete="new-password" aria-hidden="true">
+
       <div class="form-group">
         <label for="loginEmail" class="form-label">
           Email ID / Username <span class="req">*</span>
@@ -67,7 +71,7 @@
             class="form-control" 
             placeholder="Enter your password" 
             required 
-            autocomplete="current-password"
+            autocomplete="new-password"
             value=""
           >
           <button type="button" class="password-toggle-btn" aria-label="Show password" title="Show password" onclick="togglePasswordVisibility('loginPassword', this)">
@@ -222,7 +226,7 @@
           id="resetEmail" 
           name="email" 
           class="form-control" 
-          placeholder="e.g. radhapatil0107@gmail.com or EN25276191" 
+          placeholder="e.g. student@gmail.com or EN25276191" 
           required
           autocomplete="username"
         >
@@ -354,5 +358,27 @@ function switchAuthTab(mode) {
 
 // Initialize active tab
 switchAuthTab('{{ auth_mode or "login" }}');
+
+// Clear browser autofilled credentials on initial load so fields start empty
+function clearAutofilledLogin() {
+  const emailInput = document.getElementById('loginEmail');
+  const passInput = document.getElementById('loginPassword');
+  if (emailInput && !emailInput.matches(':focus')) {
+    emailInput.value = '';
+  }
+  if (passInput && !passInput.matches(':focus')) {
+    passInput.value = '';
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  clearAutofilledLogin();
+  setTimeout(clearAutofilledLogin, 50);
+  setTimeout(clearAutofilledLogin, 200);
+});
+
+window.addEventListener('pageshow', () => {
+  clearAutofilledLogin();
+});
 </script>
 {% endblock %}
