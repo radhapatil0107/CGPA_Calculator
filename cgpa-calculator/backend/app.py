@@ -7,7 +7,7 @@ import os
 import json
 import re
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from functools import wraps
 
 from flask import (
@@ -826,13 +826,19 @@ def api_save_cgpa():
         saved_items = []
         for idx, item in enumerate(semesters_data, start=1):
             sem_name = str(item.get("semester_name", f"Semester {idx}")).strip()
-            
-            # Extract number from name if possible (e.g. 'Semester 2 (FY)' -> 2)
-            match = re.search(r'(?:Semester|Sem)\s*(\d+)', sem_name, re.IGNORECASE)
-            if match:
-                sem_no = int(match.group(1))
+
+            # Prefer explicit numeric semester_no if provided, otherwise extract from name
+            if "semester_no" in item and str(item["semester_no"]).strip().isdigit():
+                sem_no = int(item["semester_no"])
             else:
-                sem_no = int(item.get("semester_no", idx))
+                match = re.search(r'(?:Semester|Sem)\s*(\d+)', sem_name, re.IGNORECASE)
+                if match:
+                    sem_no = int(match.group(1))
+                else:
+                    sem_no = idx
+
+            if sem_no < 1 or sem_no > 12:
+                sem_no = idx
 
             sgpa = float(item.get("sgpa", 0))
             if sgpa < 0 or sgpa > 10:
@@ -1034,7 +1040,17 @@ def api_semester_detail(semester_id):
                 semester.sgpa = s
                 
             if "semester_no" in data:
-                semester.semester_no = int(data["semester_no"])
+                new_sem_no = int(data["semester_no"])
+                if new_sem_no < 1 or new_sem_no > 12:
+                    return jsonify({"success": False, "error": "Semester number must be between 1 and 12."}), 400
+                duplicate = Semester.query.filter(
+                    Semester.user_id == user.id,
+                    Semester.semester_no == new_sem_no,
+                    Semester.id != semester.id
+                ).first()
+                if duplicate:
+                    return jsonify({"success": False, "error": f"Semester {new_sem_no} already exists in your tracker. Edit that entry instead."}), 400
+                semester.semester_no = new_sem_no
                 
             if "semester_name" in data:
                 semester.semester_name = str(data["semester_name"]).strip()

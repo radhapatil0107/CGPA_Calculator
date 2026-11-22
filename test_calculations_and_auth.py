@@ -423,6 +423,36 @@ class TestAuthenticationAndLogin(unittest.TestCase):
         self.assertIn("Delete Account", ach_html)
         self.assertIn("0.00", ach_html)
 
+    def test_semester_update_duplicate_rejection(self):
+        """Verify modifying semester_no prevents collision with existing semester numbers."""
+        from app import Semester, db, User
+
+        with app.app_context():
+            u = User(username="sem_dup_user", email="sem_dup@example.com")
+            u.set_password("pass123")
+            db.session.add(u)
+            db.session.flush()
+
+            s1 = Semester(user_id=u.id, semester_no=1, semester_name="Semester 1", credits=20.0, sgpa=8.0, grade_points=160.0)
+            s2 = Semester(user_id=u.id, semester_no=2, semester_name="Semester 2", credits=20.0, sgpa=8.5, grade_points=170.0)
+            db.session.add_all([s1, s2])
+            db.session.commit()
+            uid, s1_id, s2_id = u.id, s1.id, s2.id
+
+        with self.client.session_transaction() as sess:
+            sess["user_id"] = uid
+            sess["username"] = "sem_dup_user"
+
+        # Try to change Sem 1's semester_no to 2 (which already exists for this user)
+        res_dup = self.client.put(f"/api/semesters/{s1_id}", json={"semester_no": 2})
+        self.assertEqual(res_dup.status_code, 400)
+        self.assertIn("already exists", res_dup.get_json()["error"])
+
+        # Change Sem 1 to an available semester number (e.g. 3) succeeds
+        res_ok = self.client.put(f"/api/semesters/{s1_id}", json={"semester_no": 3})
+        self.assertEqual(res_ok.status_code, 200)
+        self.assertTrue(res_ok.get_json()["success"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -138,11 +138,11 @@
             {% if current_user and student.user_id == current_user.id %}
             <div style="display: flex; gap: 0.35rem; justify-content: center; flex-wrap: wrap;">
               {% if student.semesters_count > 0 %}
-              <button type="button" class="btn btn-secondary btn-sm" style="font-size: 0.76rem; padding: 0.25rem 0.5rem;" onclick="clearUserAchievement({{ student.user_id }}, '{{ student.name }}')" title="Reset your CGPA to 0.00 and permanently remove semester records">
+              <button type="button" class="btn btn-secondary btn-sm" style="font-size: 0.76rem; padding: 0.25rem 0.5rem;" data-user-id="{{ student.user_id }}" data-student-name="{{ student.name }}" onclick="clearUserAchievementFromBtn(this)" title="Reset your CGPA to 0.00 and permanently remove semester records">
                 🧹 Reset My CGPA
               </button>
               {% endif %}
-              <button type="button" class="btn btn-danger-outline btn-sm" style="font-size: 0.76rem; padding: 0.25rem 0.5rem;" onclick="deleteUserAchievement({{ student.user_id }}, '{{ student.name }}')" title="Permanently delete your account and all records">
+              <button type="button" class="btn btn-danger-outline btn-sm" style="font-size: 0.76rem; padding: 0.25rem 0.5rem;" data-user-id="{{ student.user_id }}" data-student-name="{{ student.name }}" onclick="deleteUserAchievementFromBtn(this)" title="Permanently delete your account and all records">
                 🗑️ Delete Account
               </button>
             </div>
@@ -167,6 +167,18 @@
 
 {% block scripts %}
 <script>
+function deleteUserAchievementFromBtn(btn) {
+  const userId = btn.dataset.userId;
+  const studentName = btn.dataset.studentName || 'Student';
+  deleteUserAchievement(userId, studentName);
+}
+
+function clearUserAchievementFromBtn(btn) {
+  const userId = btn.dataset.userId;
+  const studentName = btn.dataset.studentName || 'Student';
+  clearUserAchievement(userId, studentName);
+}
+
 async function deleteUserAchievement(userId, studentName) {
   if (!confirm(`Are you sure you want to permanently delete your student account ("${studentName}")?\n\nThis will remove your account and all semester records from the database permanently. This action cannot be undone.`)) {
     return;
