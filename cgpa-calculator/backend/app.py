@@ -112,19 +112,25 @@ class User(db.Model):
 
     def set_password(self, password: str):
         """Secure, salted password hash using PBKDF2:SHA256 (OWASP industry standard)."""
+        clean_pwd = password.strip() if password else password
         try:
-            self.password_hash = generate_password_hash(password, method="pbkdf2:sha256")
+            self.password_hash = generate_password_hash(clean_pwd, method="pbkdf2:sha256")
         except Exception:
-            self.password_hash = generate_password_hash(password)
+            self.password_hash = generate_password_hash(clean_pwd)
 
     def check_password(self, password: str) -> bool:
-        """Verify candidate plaintext password against stored salted hash."""
+        """Verify candidate plaintext password against stored salted hash with whitespace trimming support."""
         if not self.password_hash or not password:
             return False
+        clean_pwd = password.strip() if password else password
         try:
-            return check_password_hash(self.password_hash, password)
+            if check_password_hash(self.password_hash, password):
+                return True
+            if clean_pwd != password and check_password_hash(self.password_hash, clean_pwd):
+                return True
         except Exception:
-            return False
+            pass
+        return False
 
 
 class StudentProfile(db.Model):
@@ -276,6 +282,41 @@ def login_view():
         action = request.form.get("action", "login")
         password = request.form.get("password", "")
         
+        if action == "reset_password":
+            reset_id = request.form.get("email", "").strip()
+            new_password = request.form.get("new_password", "").strip()
+            confirm_new_password = request.form.get("confirm_new_password", "").strip()
+
+            if not reset_id or not new_password:
+                flash("Please provide your Email ID/Username and a new password.", "danger")
+                return render_template("login.html", active_page="login", auth_mode="reset")
+
+            if new_password != confirm_new_password:
+                flash("New passwords do not match. Please try again.", "danger")
+                return render_template("login.html", active_page="login", auth_mode="reset")
+
+            target_user = User.query.filter(
+                (db.func.lower(User.email) == reset_id.lower()) |
+                (db.func.lower(User.username) == reset_id.lower())
+            ).first()
+
+            if not target_user:
+                prof = StudentProfile.query.filter(
+                    (db.func.lower(StudentProfile.name) == reset_id.lower()) |
+                    (db.func.lower(StudentProfile.name).like(f"{reset_id.lower()}%"))
+                ).first()
+                if prof and prof.user:
+                    target_user = prof.user
+
+            if target_user:
+                target_user.set_password(new_password)
+                db.session.commit()
+                flash("Password updated successfully! You can now sign in with your new password.", "success")
+                return render_template("login.html", active_page="login", auth_mode="login", prefill_email=target_user.email)
+            else:
+                flash("No student account found with that Email ID or Username.", "danger")
+                return render_template("login.html", active_page="login", auth_mode="reset")
+
         if not password:
             flash("Please provide your password.", "danger")
             return render_template("login.html", active_page="login", auth_mode=action)
@@ -284,6 +325,7 @@ def login_view():
             name = request.form.get("name", "").strip()
             email = request.form.get("email", "").strip().lower()
             branch = request.form.get("branch", "").strip()
+            requested_username = request.form.get("username", "").strip()
 
             if not name:
                 flash("Full Name is required.", "danger")
@@ -298,20 +340,29 @@ def login_view():
                 return render_template("login.html", active_page="login", auth_mode="register")
 
             confirm_password = request.form.get("confirm_password", "")
-            if confirm_password and confirm_password != password:
+            if confirm_password and confirm_password.strip() != password.strip():
                 flash("Passwords do not match. Please try again.", "danger")
                 return render_template("login.html", active_page="login", auth_mode="register")
 
             # Check for existing email
-            if User.query.filter(db.func.lower(User.email) == email).first():
-                flash(f"Email '{email}' is already registered. Please sign in or use a different email.", "warning")
-                return render_template("login.html", active_page="login", auth_mode="register")
+            existing_user = User.query.filter(db.func.lower(User.email) == email).first()
+            if existing_user:
+                flash(f"Email '{email}' is already registered. Please sign in below.", "warning")
+                return render_template("login.html", active_page="login", auth_mode="login", prefill_email=email)
 
-            # Auto-generate a clean, unique internal username from email or name
-            base_username = re.sub(r'[^a-zA-Z0-9_]', '_', email.split("@")[0])[:50] or "student"
+            # Determine username: user-specified, or clean first name, or email prefix
+            if requested_username:
+                base_username = re.sub(r'[^a-zA-Z0-9_]', '_', requested_username)[:50].lower()
+            else:
+                first_name_slug = re.sub(r'[^a-zA-Z0-9_]', '_', name.split()[0])[:50].lower() if name else ""
+                if first_name_slug and not User.query.filter(db.func.lower(User.username) == first_name_slug).first():
+                    base_username = first_name_slug
+                else:
+                    base_username = re.sub(r'[^a-zA-Z0-9_]', '_', email.split("@")[0])[:50].lower() or "student"
+
             username = base_username
             counter = 1
-            while User.query.filter_by(username=username).first():
+            while User.query.filter(db.func.lower(User.username) == username).first():
                 username = f"{base_username}_{counter}"
                 counter += 1
 
@@ -328,11 +379,11 @@ def login_view():
             db.session.flush()
 
             roll_no = request.form.get("roll_no", "").strip()
-            prn = request.form.get("prn", "").strip() or "202401234567"
+            prn = request.form.get("prn", "").strip() or f"2024{new_user.id:08d}"
             profile = StudentProfile(
                 user_id=new_user.id,
                 name=name,
-                roll_no=roll_no,
+                roll_no=roll_no or "DS-202",
                 prn=prn,
                 branch=branch or "B.Tech Computer Science & Engineering (Data Science)",
                 year="Second Year (SY)",
@@ -344,7 +395,7 @@ def login_view():
             session.permanent = True
             session["user_id"] = new_user.id
             session["username"] = new_user.username
-            flash(f"Welcome, {name}! Your account has been registered successfully.", "success")
+            flash(f"Welcome, {name}! Your account has been registered successfully. (Username: {new_user.username})", "success")
             return redirect(url_for("index"))
 
         else:  # Login
@@ -353,29 +404,54 @@ def login_view():
                 flash("Please enter your Email ID or Username.", "danger")
                 return render_template("login.html", active_page="login")
 
-            # Flexible lookup: matches email, username, unique_id, or student profile name/roll_no/prn (case-insensitive)
+            user = None
+
+            # 1. Exact match by email, username, or unique_id
             user = User.query.filter(
                 (db.func.lower(User.email) == login_id.lower()) |
                 (db.func.lower(User.username) == login_id.lower()) |
                 (db.func.lower(User.unique_id) == login_id.lower())
             ).first()
 
+            # 2. Match by student profile (exact name, roll_no, or prn)
             if not user:
-                # Also check matching by student's display name, roll_no, or prn
                 prof = StudentProfile.query.filter(
                     (db.func.lower(StudentProfile.name) == login_id.lower()) |
                     (db.func.lower(StudentProfile.roll_no) == login_id.lower()) |
                     (db.func.lower(StudentProfile.prn) == login_id.lower())
                 ).first()
-                if not prof and " " in login_id:
-                    query = StudentProfile.query
-                    for part in login_id.lower().split():
-                        query = query.filter(db.func.lower(StudentProfile.name).contains(part))
-                    prof = query.first()
                 if prof and prof.user:
                     user = prof.user
 
-            if user and user.check_password(password):
+            # 3. Match by name starts with (e.g. login_id "sahil" matches profile "Sahil Taware")
+            if not user:
+                prof = StudentProfile.query.filter(
+                    db.func.lower(StudentProfile.name).like(f"{login_id.lower()}%")
+                ).first()
+                if prof and prof.user:
+                    user = prof.user
+
+            # 4. Match by username or email prefix (e.g. "sahil" matches "sahiltaware415@...")
+            if not user:
+                user = User.query.filter(
+                    db.func.lower(User.username).like(f"{login_id.lower()}%") |
+                    db.func.lower(User.email).like(f"{login_id.lower()}%")
+                ).first()
+
+            # 5. Match by any word in student name (e.g. "Taware" or "Patil")
+            if not user:
+                prof = StudentProfile.query.filter(
+                    db.func.lower(StudentProfile.name).contains(login_id.lower())
+                ).first()
+                if prof and prof.user:
+                    user = prof.user
+
+            # Verify password
+            is_valid_pw = False
+            if user:
+                is_valid_pw = user.check_password(password)
+
+            if user and is_valid_pw:
                 user.last_login = datetime.utcnow()
                 user.login_count = (user.login_count or 0) + 1
                 db.session.commit()
@@ -391,7 +467,7 @@ def login_view():
                 return redirect(url_for("index"))
             else:
                 flash("Invalid Email ID or password.", "danger")
-                return render_template("login.html", active_page="login")
+                return render_template("login.html", active_page="login", prefill_email=login_id)
 
     return render_template("login.html", active_page="login")
 
@@ -1189,11 +1265,55 @@ def init_db():
                 else:
                     demo_user.set_password("student123")
 
-                # Also ensure User #1 (radhapatil0107@gmail.com) can log in with password 'student123'
-                u1 = db.session.get(User, 1)
-                if u1 and not u1.check_password("student123"):
-                    u1.set_password("student123")
-                    db.session.add(u1)
+                # Ensure demo student account 'sahil' / 'student123' exists
+                sahil_user = User.query.filter((User.username == "sahil") | (User.email == "sahiltaware415@gmail.com")).first()
+                if not sahil_user:
+                    sahil_user = User(
+                        username="sahil",
+                        email="sahiltaware415@gmail.com",
+                        unique_id="EN25299998"
+                    )
+                    sahil_user.set_password("student123")
+                    db.session.add(sahil_user)
+                    db.session.flush()
+
+                    sahil_prof = StudentProfile(
+                        user_id=sahil_user.id,
+                        name="Sahil Taware",
+                        roll_no="DS-202",
+                        prn="202401234568",
+                        branch="B.Tech Computer Science & Engineering (Data Science)",
+                        year="Second Year (SY)",
+                        college="D.Y. Patil College of Engineering & Technology, Kolhapur"
+                    )
+                    db.session.add(sahil_prof)
+
+                    s1 = Semester(
+                        user_id=sahil_user.id,
+                        semester_no=1,
+                        semester_name="Semester 1 (FY)",
+                        credits=20.0,
+                        sgpa=8.85,
+                        grade_points=177.0
+                    )
+                    s2 = Semester(
+                        user_id=sahil_user.id,
+                        semester_no=2,
+                        semester_name="Semester 2 (FY)",
+                        credits=20.0,
+                        sgpa=9.15,
+                        grade_points=183.0
+                    )
+                    db.session.add_all([s1, s2])
+                else:
+                    sahil_user.set_password("student123")
+
+                # Ensure demo accounts (radhapatil0107, sujalsunke26, sanchitapatil) have working password student123
+                for uid in [1, 2, 3]:
+                    u = db.session.get(User, uid)
+                    if u and not u.check_password("student123"):
+                        u.set_password("student123")
+                        db.session.add(u)
 
                 db.session.commit()
             except Exception as sync_err:

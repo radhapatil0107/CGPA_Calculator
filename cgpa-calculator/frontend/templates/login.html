@@ -7,7 +7,7 @@
   <div class="card" style="padding: 2.25rem;">
     
     <!-- Student Identity Header -->
-    <div style="text-align: center; margin-bottom: 1.75rem;">
+    <div style="text-align: center; margin-bottom: 1.5rem;">
       <div class="college-tag">
         <span>👨‍🎓</span> Student Academic Portal
       </div>
@@ -15,8 +15,27 @@
         Student Portal
       </h2>
       <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.25rem;">
-        Academic Grade &amp; CGPA Portal
+        Academic Grade &amp; CGPA Portal &bull; D.Y. Patil College
       </p>
+    </div>
+
+    <!-- Quick Demo Credentials Box for External Faculty / Review -->
+    <div style="background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--border-color); padding: 0.85rem 1rem; margin-bottom: 1.5rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.25rem;">
+        <strong style="font-size: 0.85rem; color: var(--text-main);">⚡ Quick Demo Sign In (1-Click Fill)</strong>
+        <span class="badge badge-A-plus" style="font-size: 0.72rem;">FACULTY DEMO READY</span>
+      </div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="quickFillLogin('student', 'student123')" style="font-size: 0.78rem; padding: 0.25rem 0.6rem;">
+          👨‍🎓 student
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="quickFillLogin('sahil', 'student123')" style="font-size: 0.78rem; padding: 0.25rem 0.6rem;">
+          👨‍🎓 sahil
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="quickFillLogin('radhapatil0107@gmail.com', 'student123')" style="font-size: 0.78rem; padding: 0.25rem 0.6rem;">
+          👨‍🎓 radhika
+        </button>
+      </div>
     </div>
 
     <!-- Mode Switch Tabs -->
@@ -35,20 +54,20 @@
 
       <div class="form-group">
         <label for="loginEmail" class="form-label">
-          Email ID / Username <span class="req">*</span>
+          Email ID / Username / Name <span class="req">*</span>
         </label>
         <input 
           type="text" 
           id="loginEmail" 
           name="email" 
           class="form-control" 
-          placeholder="Enter your Email ID or Username" 
+          placeholder="Enter Email ID, Username, or Full Name" 
           required 
-          autocomplete="off"
+          autocomplete="username"
           autocorrect="off"
           autocapitalize="none"
           spellcheck="false"
-          value=""
+          value="{{ prefill_email or '' }}"
         >
       </div>
 
@@ -64,7 +83,7 @@
             class="form-control" 
             placeholder="Enter your password" 
             required 
-            autocomplete="new-password"
+            autocomplete="current-password"
             value=""
           >
           <button type="button" class="password-toggle-btn" aria-label="Show password" title="Show password" onclick="togglePasswordVisibility('loginPassword', this)">
@@ -79,6 +98,12 @@
               <line x1="2" x2="22" y1="2" y2="22"/>
             </svg>
           </button>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; flex-wrap: wrap; gap: 0.25rem;">
+          <span style="font-size: 0.8rem; color: var(--text-muted);">Default Demo Pass: <strong>student123</strong></span>
+          <a href="javascript:void(0)" onclick="switchAuthTab('reset')" style="font-size: 0.8rem; color: var(--primary); text-decoration: underline;">
+            Forgot password?
+          </a>
         </div>
       </div>
 
@@ -122,6 +147,20 @@
       </div>
 
       <div class="form-group">
+        <label for="regUsername" class="form-label">
+          Username <span style="font-weight: 400; color: var(--text-muted); font-size: 0.8rem;">(Optional &bull; e.g. sahil)</span>
+        </label>
+        <input 
+          type="text" 
+          id="regUsername" 
+          name="username" 
+          class="form-control" 
+          placeholder="Choose a username (or leave blank to auto-use first name)" 
+          autocomplete="username"
+        >
+      </div>
+
+      <div class="form-group">
         <label for="regBranch" class="form-label">
           Branch &amp; Degree <span class="req">*</span>
         </label>
@@ -130,7 +169,8 @@
           id="regBranch" 
           name="branch" 
           class="form-control" 
-          placeholder="e.g. B.Tech Computer Science & Engineering" 
+          placeholder="e.g. B.Tech Computer Science & Engineering (Data Science)" 
+          value="B.Tech Computer Science & Engineering (Data Science)"
           required
         >
       </div>
@@ -200,6 +240,63 @@
       </button>
     </form>
 
+    <!-- Reset Password Form -->
+    <form id="resetForm" method="POST" action="{{ url_for('login_view') }}" style="display: none;">
+      <input type="hidden" name="action" value="reset_password">
+
+      <div class="form-group">
+        <label for="resetEmail" class="form-label">
+          Registered Email ID or Username <span class="req">*</span>
+        </label>
+        <input 
+          type="text" 
+          id="resetEmail" 
+          name="email" 
+          class="form-control" 
+          placeholder="e.g. sahil or student@example.com" 
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="resetNewPassword" class="form-label">
+          New Password <span class="req">*</span>
+        </label>
+        <input 
+          type="password" 
+          id="resetNewPassword" 
+          name="new_password" 
+          class="form-control" 
+          placeholder="Enter new password (e.g. student123)" 
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="resetConfirmPassword" class="form-label">
+          Confirm New Password <span class="req">*</span>
+        </label>
+        <input 
+          type="password" 
+          id="resetConfirmPassword" 
+          name="confirm_new_password" 
+          class="form-control" 
+          placeholder="Re-enter new password" 
+          required
+        >
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1.5rem;">
+        Update Password Now &rarr;
+      </button>
+
+      <div style="text-align: center; margin-top: 1rem;">
+        <a href="javascript:void(0)" onclick="switchAuthTab('login')" style="font-size: 0.85rem; color: var(--text-muted); text-decoration: none;">
+          &larr; Back to Sign In
+        </a>
+      </div>
+    </form>
+
   </div>
 </div>
 {% endblock %}
@@ -230,31 +327,45 @@ function togglePasswordVisibility(inputId, btn) {
 function switchAuthTab(mode) {
   const loginForm = document.getElementById('loginForm');
   const registerForm = document.getElementById('registerForm');
+  const resetForm = document.getElementById('resetForm');
   const tabLogin = document.getElementById('tabLogin');
   const tabRegister = document.getElementById('tabRegister');
 
   if (mode === 'login') {
     loginForm.style.display = 'block';
     registerForm.style.display = 'none';
+    if (resetForm) resetForm.style.display = 'none';
     tabLogin.className = 'btn btn-sm btn-block btn-primary';
     tabRegister.className = 'btn btn-sm btn-block btn-secondary';
-  } else {
+  } else if (mode === 'register') {
     loginForm.style.display = 'none';
     registerForm.style.display = 'block';
+    if (resetForm) resetForm.style.display = 'none';
     tabLogin.className = 'btn btn-sm btn-block btn-secondary';
     tabRegister.className = 'btn btn-sm btn-block btn-primary';
+  } else if (mode === 'reset') {
+    loginForm.style.display = 'none';
+    registerForm.style.display = 'none';
+    if (resetForm) resetForm.style.display = 'block';
+    tabLogin.className = 'btn btn-sm btn-block btn-secondary';
+    tabRegister.className = 'btn btn-sm btn-block btn-secondary';
+  }
+}
+
+function quickFillLogin(identifier, password) {
+  switchAuthTab('login');
+  const emailInput = document.getElementById('loginEmail');
+  const passInput = document.getElementById('loginPassword');
+  if (emailInput) {
+    emailInput.value = identifier;
+    emailInput.focus();
+  }
+  if (passInput) {
+    passInput.value = password;
   }
 }
 
 // Initialize active tab
 switchAuthTab('{{ auth_mode or "login" }}');
-
-// Clear any stale browser autofill on fresh page load or back-navigation
-window.addEventListener('pageshow', function() {
-  const form = document.getElementById('loginForm');
-  if (form && !'{{ auth_mode }}') {
-    form.reset();
-  }
-});
 </script>
 {% endblock %}
