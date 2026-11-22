@@ -40,13 +40,29 @@ templates_path = os.path.join(project_root, "frontend", "templates")
 static_path = os.path.join(project_root, "frontend", "static")
 # Handle read-only filesystem environments (e.g. Vercel Serverless)
 is_vercel = bool(os.environ.get("VERCEL"))
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+seed_db_path = os.path.join(backend_dir, "seed_grade_calculator.db")
+
 if is_vercel:
     if os.name == "nt":
         instance_path = tempfile.gettempdir()
         db_path = os.path.join(tempfile.gettempdir(), "grade_calculator.db").replace("\\", "/")
+        if not os.path.exists(db_path) and os.path.exists(seed_db_path):
+            try:
+                import shutil
+                shutil.copy2(seed_db_path, db_path)
+            except Exception:
+                pass
         database_url = os.environ.get("DATABASE_URL", f"sqlite:///{db_path}")
     else:
         instance_path = "/tmp"
+        db_path = "/tmp/grade_calculator.db"
+        if not os.path.exists(db_path) and os.path.exists(seed_db_path):
+            try:
+                import shutil
+                shutil.copy2(seed_db_path, db_path)
+            except Exception:
+                pass
         database_url = os.environ.get("DATABASE_URL", "sqlite:////tmp/grade_calculator.db")
 else:
     instance_path = os.path.join(project_root, "instance")
@@ -316,10 +332,11 @@ def login_view():
                 flash("Please enter your Email ID.", "danger")
                 return render_template("login.html", active_page="login")
 
-            # Flexible lookup: matches email, username, or student profile name (case-insensitive)
+            # Flexible lookup: matches email, username, unique_id, or student profile name (case-insensitive)
             user = User.query.filter(
                 (db.func.lower(User.email) == login_id.lower()) |
-                (db.func.lower(User.username) == login_id.lower())
+                (db.func.lower(User.username) == login_id.lower()) |
+                (db.func.lower(User.unique_id) == login_id.lower())
             ).first()
 
             if not user:
@@ -361,7 +378,8 @@ def api_resolve_email():
         
     user = User.query.filter(
         (db.func.lower(User.email) == identifier.lower()) |
-        (db.func.lower(User.username) == identifier.lower())
+        (db.func.lower(User.username) == identifier.lower()) |
+        (db.func.lower(User.unique_id) == identifier.lower())
     ).first()
     
     if not user:
@@ -969,12 +987,62 @@ def api_clear_user_data(user_id):
 # Database Setup & Seed
 # -----------------------------------------------------------------------------
 def init_db():
-    """Create tables if not already present."""
+    """Create tables if not already present and seed initial student data if empty."""
     with app.app_context():
         try:
             db.create_all()
+            if User.query.count() == 0:
+                seed_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed_data.json")
+                if os.path.exists(seed_json):
+                    with open(seed_json, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    for u in data.get("users", []):
+                        created_dt = datetime.fromisoformat(u["created_at"]) if u.get("created_at") else datetime.utcnow()
+                        user = User(
+                            id=u["id"],
+                            unique_id=u.get("unique_id"),
+                            email=u.get("email"),
+                            username=u["username"],
+                            password_hash=u["password_hash"],
+                            created_at=created_dt
+                        )
+                        db.session.add(user)
+                    db.session.flush()
+
+                    for p in data.get("student_profiles", []):
+                        updated_dt = datetime.fromisoformat(p["updated_at"]) if p.get("updated_at") else datetime.utcnow()
+                        profile = StudentProfile(
+                            id=p["id"],
+                            user_id=p["user_id"],
+                            name=p.get("name", "Student"),
+                            roll_no=p.get("roll_no", ""),
+                            prn=p.get("prn", ""),
+                            branch=p.get("branch", "B.Tech Computer Science & Engineering"),
+                            year=p.get("year", "Second Year (SY)"),
+                            college=p.get("college", "College of Engineering & Technology"),
+                            updated_at=updated_dt
+                        )
+                        db.session.add(profile)
+
+                    for s in data.get("semesters", []):
+                        created_dt = datetime.fromisoformat(s["created_at"]) if s.get("created_at") else datetime.utcnow()
+                        sem = Semester(
+                            id=s["id"],
+                            user_id=s["user_id"],
+                            semester_no=s["semester_no"],
+                            semester_name=s.get("semester_name", ""),
+                            credits=float(s["credits"]),
+                            sgpa=float(s["sgpa"]),
+                            grade_points=float(s["grade_points"]),
+                            subjects_json=s.get("subjects_json", "[]"),
+                            created_at=created_dt
+                        )
+                        db.session.add(sem)
+
+                    db.session.commit()
         except Exception as e:
-            app.logger.error(f"Error during db.create_all: {e}")
+            db.session.rollback()
+            app.logger.error(f"Error during init_db: {e}")
 
 
 # Initialize tables when starting

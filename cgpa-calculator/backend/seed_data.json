@@ -1,0 +1,98 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "radhapatil0107@gmail.com",
+      "password_hash": "scrypt:32768:8:1$qXuUHJUbIPxQ0XTT$ce7126c8bda54de2bc7402f77275ca1f1389c3b391d8fc5d336697dcbf05cca4cf9e5de3082f9f5d0fc16ce07b42bc1de2602ecaeb02563aedb416cf48c390fe",
+      "created_at": "2026-10-14 08:47:23.980158",
+      "unique_id": "EN25276191",
+      "email": "radhapatil0107@gmail.com"
+    },
+    {
+      "id": 2,
+      "username": "sujalsunke26@gmail.com",
+      "password_hash": "scrypt:32768:8:1$Nml7RTbVp8QXLO7l$d0c8ce7548536c5ba9b00819c14f675e3dbe93debf38817b47c4a366c8878a3fd8357e6e914b43a9270b33ecd2fadd8366cb80e4956731092332b78489ae6423",
+      "created_at": "2026-10-14 09:10:10.302403",
+      "unique_id": "EN25296467",
+      "email": "sujalsunke26@gmail.com"
+    },
+    {
+      "id": 3,
+      "username": "sanchitapatil887@gmail.com",
+      "password_hash": "scrypt:32768:8:1$PXBwzHBze7x9eCRJ$4b3f415a139816f70e64793f5e4c7560626d7758dbd30475c8310256fe7d693a451330229487850f44df6d35a8230a575657cfc1440a0bbd94a46273c9997db3",
+      "created_at": "2026-10-14 09:38:24.755905",
+      "unique_id": "EN25268114",
+      "email": "sanchitapatil887@gmail.com"
+    }
+  ],
+  "student_profiles": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "name": "Radhika Krishnat Patil",
+      "roll_no": "69",
+      "prn": "",
+      "branch": "B.Tech Computer Science & Engineering",
+      "year": "Second Year (SY)",
+      "college": "College of Engineering & Technology",
+      "updated_at": "2026-10-14 08:47:40.032106"
+    },
+    {
+      "id": 2,
+      "user_id": 2,
+      "name": "Sujal Sunilkumar Sunke",
+      "roll_no": "64",
+      "prn": "",
+      "branch": "B.Tech Computer Science & Engineering",
+      "year": "Second Year (SY)",
+      "college": "College of Engineering & Technology",
+      "updated_at": "2026-10-14 09:11:20.625997"
+    },
+    {
+      "id": 3,
+      "user_id": 3,
+      "name": "Sanchita Shivanand Patil",
+      "roll_no": "",
+      "prn": "",
+      "branch": "B.Tech Computer Science & Engineering",
+      "year": "Second Year (SY)",
+      "college": "College of Engineering & Technology",
+      "updated_at": "2026-10-14 09:38:24.760456"
+    }
+  ],
+  "semesters": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "semester_no": 1,
+      "semester_name": "Semester 1 (FY)",
+      "credits": 20.0,
+      "sgpa": 8.8,
+      "grade_points": 176.0,
+      "subjects_json": null,
+      "created_at": "2026-10-14 08:49:14.681140"
+    },
+    {
+      "id": 2,
+      "user_id": 1,
+      "semester_no": 2,
+      "semester_name": "Semester 2 (FY)",
+      "credits": 20.0,
+      "sgpa": 9.2,
+      "grade_points": 184.0,
+      "subjects_json": null,
+      "created_at": "2026-10-14 08:49:14.685881"
+    },
+    {
+      "id": 3,
+      "user_id": 3,
+      "semester_no": 3,
+      "semester_name": "Semester III (SY)",
+      "credits": 22.0,
+      "sgpa": 8.05,
+      "grade_points": 177.1,
+      "subjects_json": "[{\"code\": \"231DSPCCL201\", \"credits\": 3, \"earned_points\": 27, \"grade\": \"A+\", \"grade_point\": 9, \"marks\": 80, \"name\": \"Probability & Statistics\", \"total_marks\": 100}, {\"code\": \"231DSPCCL202\", \"credits\": 3, \"earned_points\": 24, \"grade\": \"A\", \"grade_point\": 8, \"marks\": 79, \"name\": \"Data Structures\", \"total_marks\": 100}, {\"code\": \"231DSPCCP202\", \"credits\": 1, \"earned_points\": 7, \"grade\": \"B+\", \"grade_point\": 7, \"marks\": 30, \"name\": \"Data Structures Laboratory\", \"total_marks\": 50}, {\"code\": \"231DSPCCP203\", \"credits\": 3, \"earned_points\": 27, \"grade\": \"A+\", \"grade_point\": 9, \"marks\": 86, \"name\": \"Programming Lab - I\", \"total_marks\": 100}, {\"code\": \"231DSMDML201\", \"credits\": 2, \"earned_points\": 10, \"grade\": \"C\", \"grade_point\": 5, \"marks\": 25, \"name\": \"Fundamentals of Data Science\", \"total_marks\": 50}, {\"code\": \"231DSOECL201\", \"credits\": 4, \"earned_points\": 28, \"grade\": \"B+\", \"grade_point\": 7, \"marks\": 85, \"name\": \"Data Science for Everyone\", \"total_marks\": 125}, {\"code\": \"231DSFPP201\", \"credits\": 2, \"earned_points\": 20, \"grade\": \"O\", \"grade_point\": 10, \"marks\": 45, \"name\": \"Domain Specific Mini Project\", \"total_marks\": 50}, {\"code\": \"231DSVECL201\", \"credits\": 2, \"earned_points\": 18, \"grade\": \"A+\", \"grade_point\": 9, \"marks\": 40, \"name\": \"Environmental Studies\", \"total_marks\": 50}, {\"code\": \"231DSHSSML201\", \"credits\": 2, \"earned_points\": 16, \"grade\": \"A\", \"grade_point\": 8, \"marks\": 39, \"name\": \"Economics and Management for IT\", \"total_marks\": 50}, {\"code\": \"231DSCCA201\", \"credits\": 0, \"earned_points\": 0, \"grade\": \"O\", \"grade_point\": 10, \"marks\": 50, \"name\": \"Liberal Learning\", \"total_marks\": 50}, {\"code\": \"231DSMCL201\", \"credits\": 0, \"earned_points\": 0, \"grade\": \"C\", \"grade_point\": 5, \"marks\": 25, \"name\": \"Finishing School Training - III\", \"total_marks\": 50}]",
+      "created_at": "2026-10-14 09:41:03.623167"
+    }
+  ]
+}

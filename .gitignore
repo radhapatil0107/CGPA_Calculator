@@ -14,6 +14,8 @@ instance/
 *.db
 *.sqlite
 *.sqlite3
+!cgpa-calculator/backend/seed_grade_calculator.db
+!cgpa-calculator/backend/seed_data.json
 
 # Temporary / editor files
 tempCodeRunnerFile.*
