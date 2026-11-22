@@ -1188,13 +1188,14 @@ def init_db():
             except Exception as mig_err:
                 app.logger.warning(f"Migration check notice: {mig_err}")
 
-            if User.query.count() == 0:
+            # Optional: only seed demo data if explicit environment variable is set
+            if os.environ.get("SEED_DEMO_DATA", "").lower() in ("1", "true") and User.query.count() == 0:
                 seed_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed_data.json")
                 if os.path.exists(seed_json):
                     with open(seed_json, "r", encoding="utf-8") as f:
                         data = json.load(f)
                     for u in data.get("users", []):
-                        created_dt = datetime.fromisoformat(u["created_at"]) if u.get("created_at") else datetime.utcnow()
+                        created_dt = datetime.fromisoformat(u["created_at"]) if u.get("created_at") else datetime.now(timezone.utc)
                         user = User(
                             id=u["id"],
                             unique_id=u.get("unique_id"),
@@ -1207,7 +1208,7 @@ def init_db():
                     db.session.flush()
 
                     for p in data.get("student_profiles", []):
-                        updated_dt = datetime.fromisoformat(p["updated_at"]) if p.get("updated_at") else datetime.utcnow()
+                        updated_dt = datetime.fromisoformat(p["updated_at"]) if p.get("updated_at") else datetime.now(timezone.utc)
                         profile = StudentProfile(
                             id=p["id"],
                             user_id=p["user_id"],
@@ -1222,7 +1223,7 @@ def init_db():
                         db.session.add(profile)
 
                     for s in data.get("semesters", []):
-                        created_dt = datetime.fromisoformat(s["created_at"]) if s.get("created_at") else datetime.utcnow()
+                        created_dt = datetime.fromisoformat(s["created_at"]) if s.get("created_at") else datetime.now(timezone.utc)
                         sem = Semester(
                             id=s["id"],
                             user_id=s["user_id"],
