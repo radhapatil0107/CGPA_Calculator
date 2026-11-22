@@ -1,7 +1,7 @@
 @echo off
-title Student Grade Calculator - DYPCET Kolhapur
+title Student Grade Calculator
 echo ========================================================
-echo   Student Grade Calculator - DYPCET CSE (Data Science)
+echo   Student Grade Calculator & CGPA Tracker
 echo ========================================================
 echo.
 echo Starting web server...

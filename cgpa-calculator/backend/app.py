@@ -262,12 +262,75 @@ def login_view():
         
     if request.method == "POST":
         action = request.form.get("action", "login")
+
+        if action == "reset_password":
+            reset_id = request.form.get("email", "").strip()
+            new_password = request.form.get("new_password", "")
+            confirm_password = request.form.get("confirm_password", "")
+
+            if not reset_id:
+                flash("Please enter your registered Email ID, Username, or Unique ID.", "danger")
+                return render_template("login.html", active_page="login", auth_mode="reset")
+
+            if not new_password:
+                flash("Please enter a new password.", "danger")
+                return render_template("login.html", active_page="login", auth_mode="reset")
+
+            if new_password != confirm_password:
+                flash("Passwords do not match. Please try again.", "danger")
+                return render_template("login.html", active_page="login", auth_mode="reset")
+
+            # Look up user by email, username, unique_id, email prefix, or name
+            user = User.query.filter(
+                (db.func.lower(User.email) == reset_id.lower()) |
+                (db.func.lower(User.username) == reset_id.lower()) |
+                (db.func.lower(User.unique_id) == reset_id.lower())
+            ).first()
+
+            if not user:
+                for u in User.query.all():
+                    if u.email and u.email.split("@")[0].lower() == reset_id.lower():
+                        user = u
+                        break
+
+            if not user:
+                prof = StudentProfile.query.filter(db.func.lower(StudentProfile.name).contains(reset_id.lower())).first()
+                if prof and prof.user:
+                    user = prof.user
+
+            if not user:
+                flash("No registered student found matching this Email ID or Unique ID.", "danger")
+                return render_template("login.html", active_page="login", auth_mode="reset")
+
+            # Update password
+            user.set_password(new_password)
+            db.session.commit()
+
+            # Sync seed_data.json so updated hash is persisted into future cold-starts
+            try:
+                seed_json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed_data.json")
+                if os.path.exists(seed_json_path):
+                    with open(seed_json_path, "r", encoding="utf-8") as f:
+                        sdata = json.load(f)
+                    for su in sdata.get("users", []):
+                        if su["id"] == user.id:
+                            su["password_hash"] = user.password_hash
+                    with open(seed_json_path, "w", encoding="utf-8") as f:
+                        json.dump(sdata, f, indent=2, default=str)
+            except Exception:
+                pass
+
+            session.permanent = True
+            session["user_id"] = user.id
+            session["username"] = user.username
+            flash(f"Password reset successfully! Welcome back, {user.profile.name if user.profile else user.username}!", "success")
+            return redirect(url_for("index"))
+
         password = request.form.get("password", "")
-        
         if not password:
             flash("Please provide your password.", "danger")
             return render_template("login.html", active_page="login", auth_mode=action)
-            
+
         if action == "register":
             name = request.form.get("name", "").strip()
             email = request.form.get("email", "").strip().lower()
@@ -332,16 +395,25 @@ def login_view():
                 flash("Please enter your Email ID.", "danger")
                 return render_template("login.html", active_page="login")
 
-            # Flexible lookup: matches email, username, unique_id, or student profile name (case-insensitive)
+            # Flexible lookup: matches email, username, unique_id, email prefix, or student profile name (case-insensitive)
             user = User.query.filter(
                 (db.func.lower(User.email) == login_id.lower()) |
                 (db.func.lower(User.username) == login_id.lower()) |
                 (db.func.lower(User.unique_id) == login_id.lower())
             ).first()
 
+            # Fallback 1: match email prefix before '@' (e.g. 'radhapatil0107' for 'radhapatil0107@gmail.com')
             if not user:
-                # Also check matching by student's display name
+                for u in User.query.all():
+                    if u.email and u.email.split("@")[0].lower() == login_id.lower():
+                        user = u
+                        break
+
+            # Fallback 2: match student profile name (exact or substring)
+            if not user:
                 prof = StudentProfile.query.filter(db.func.lower(StudentProfile.name) == login_id.lower()).first()
+                if not prof:
+                    prof = StudentProfile.query.filter(db.func.lower(StudentProfile.name).contains(login_id.lower())).first()
                 if not prof and " " in login_id:
                     query = StudentProfile.query
                     for part in login_id.lower().split():
@@ -350,7 +422,13 @@ def login_view():
                 if prof and prof.user:
                     user = prof.user
 
-            if user and user.check_password(password):
+            # Check password (checking both exact and trimmed)
+            is_valid = False
+            if user:
+                if user.check_password(password) or user.check_password(password.strip()):
+                    is_valid = True
+
+            if is_valid:
                 session.permanent = True
                 session["user_id"] = user.id
                 session["username"] = user.username
@@ -381,9 +459,17 @@ def api_resolve_email():
         (db.func.lower(User.username) == identifier.lower()) |
         (db.func.lower(User.unique_id) == identifier.lower())
     ).first()
+
+    if not user:
+        for u in User.query.all():
+            if u.email and u.email.split("@")[0].lower() == identifier.lower():
+                user = u
+                break
     
     if not user:
         prof = StudentProfile.query.filter(db.func.lower(StudentProfile.name) == identifier.lower()).first()
+        if not prof:
+            prof = StudentProfile.query.filter(db.func.lower(StudentProfile.name).contains(identifier.lower())).first()
         if not prof and " " in identifier:
             query = StudentProfile.query
             for part in identifier.lower().split():

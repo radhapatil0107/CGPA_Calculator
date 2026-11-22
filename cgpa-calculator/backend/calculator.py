@@ -304,7 +304,7 @@ def calculate_target_sgpa(
 def calculate_percentage(cgpa: float, multiplier: float = 9.5) -> float:
     """
     Convert CGPA to approximate percentage.
-    Default formula: Percentage = CGPA * 9.5 (AICTE / D.Y. Patil standard).
+    Default formula: Percentage = CGPA * 9.5 (AICTE / University standard).
     
     Args:
         cgpa: CGPA value
