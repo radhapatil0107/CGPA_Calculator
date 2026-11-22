@@ -19,25 +19,6 @@
       </p>
     </div>
 
-    <!-- Quick Demo Credentials Box for External Faculty / Review -->
-    <div style="background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--border-color); padding: 0.85rem 1rem; margin-bottom: 1.5rem;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.25rem;">
-        <strong style="font-size: 0.85rem; color: var(--text-main);">⚡ Quick Demo Sign In (1-Click Fill)</strong>
-        <span class="badge badge-A-plus" style="font-size: 0.72rem;">FACULTY DEMO READY</span>
-      </div>
-      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-        <button type="button" class="btn btn-secondary btn-sm" onclick="quickFillLogin('student', 'student123')" style="font-size: 0.78rem; padding: 0.25rem 0.6rem;">
-          👨‍🎓 student
-        </button>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="quickFillLogin('sahil', 'student123')" style="font-size: 0.78rem; padding: 0.25rem 0.6rem;">
-          👨‍🎓 sahil
-        </button>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="quickFillLogin('radhapatil0107@gmail.com', 'student123')" style="font-size: 0.78rem; padding: 0.25rem 0.6rem;">
-          👨‍🎓 radhika
-        </button>
-      </div>
-    </div>
-
     <!-- Mode Switch Tabs -->
     <div style="display: flex; background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 4px; margin-bottom: 1.75rem;">
       <button type="button" id="tabLogin" class="btn btn-sm btn-block" style="border-radius: var(--radius-sm); font-weight: 600;" onclick="switchAuthTab('login')">
@@ -99,8 +80,7 @@
             </svg>
           </button>
         </div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem; flex-wrap: wrap; gap: 0.25rem;">
-          <span style="font-size: 0.8rem; color: var(--text-muted);">Default Demo Pass: <strong>student123</strong></span>
+        <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 0.5rem;">
           <a href="javascript:void(0)" onclick="switchAuthTab('reset')" style="font-size: 0.8rem; color: var(--primary); text-decoration: underline;">
             Forgot password?
           </a>
@@ -267,7 +247,7 @@
           id="resetNewPassword" 
           name="new_password" 
           class="form-control" 
-          placeholder="Enter new password (e.g. student123)" 
+          placeholder="Enter new password" 
           required
         >
       </div>
@@ -349,19 +329,6 @@ function switchAuthTab(mode) {
     if (resetForm) resetForm.style.display = 'block';
     tabLogin.className = 'btn btn-sm btn-block btn-secondary';
     tabRegister.className = 'btn btn-sm btn-block btn-secondary';
-  }
-}
-
-function quickFillLogin(identifier, password) {
-  switchAuthTab('login');
-  const emailInput = document.getElementById('loginEmail');
-  const passInput = document.getElementById('loginPassword');
-  if (emailInput) {
-    emailInput.value = identifier;
-    emailInput.focus();
-  }
-  if (passInput) {
-    passInput.value = password;
   }
 }
 
