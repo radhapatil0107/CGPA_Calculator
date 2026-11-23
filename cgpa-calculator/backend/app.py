@@ -7,8 +7,12 @@ import os
 import json
 import re
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from functools import wraps
+
+def utcnow():
+    """Return timezone-naive UTC datetime compatible with SQLite and standard python datetimes."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 from flask import (
     Flask,
@@ -102,17 +106,35 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=True, index=True)
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
+    last_login = db.Column(db.DateTime, nullable=True)
+    login_count = db.Column(db.Integer, default=0)
     
     # Relationships
     profile = db.relationship("StudentProfile", backref="user", uselist=False, cascade="all, delete-orphan")
     semesters = db.relationship("Semester", backref="user", cascade="all, delete-orphan", order_by="Semester.semester_no")
 
     def set_password(self, password: str):
-        self.password_hash = generate_password_hash(password)
+        """Secure, salted password hash using PBKDF2:SHA256 (OWASP industry standard)."""
+        clean_pwd = password.strip() if password else password
+        try:
+            self.password_hash = generate_password_hash(clean_pwd, method="pbkdf2:sha256")
+        except Exception:
+            self.password_hash = generate_password_hash(clean_pwd)
 
     def check_password(self, password: str) -> bool:
-        return check_password_hash(self.password_hash, password)
+        """Verify candidate plaintext password against stored salted hash with whitespace trimming support."""
+        if not self.password_hash or not password:
+            return False
+        clean_pwd = password.strip() if password else password
+        try:
+            if check_password_hash(self.password_hash, password):
+                return True
+            if clean_pwd != password and check_password_hash(self.password_hash, clean_pwd):
+                return True
+        except Exception:
+            pass
+        return False
 
 
 class StudentProfile(db.Model):
@@ -122,12 +144,12 @@ class StudentProfile(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, unique=True)
     name = db.Column(db.String(120), default="Student")
-    roll_no = db.Column(db.String(40), default="DS-201")
-    prn = db.Column(db.String(40), default="202401234567")
+    roll_no = db.Column(db.String(40), default="CS-201")
+    prn = db.Column(db.String(40), default="")
     branch = db.Column(db.String(150), default="B.Tech Computer Science & Engineering")
     year = db.Column(db.String(80), default="Second Year (SY)")
-    college = db.Column(db.String(200), default="Engineering Institute")
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    college = db.Column(db.String(200), default="College of Engineering & Technology")
+    updated_at = db.Column(db.DateTime, default=utcnow, onupdate=utcnow)
 
     def to_dict(self):
         return {
@@ -152,7 +174,7 @@ class Semester(db.Model):
     sgpa = db.Column(db.Float, nullable=False)
     grade_points = db.Column(db.Float, nullable=False)
     subjects_json = db.Column(db.Text, nullable=True)  # JSON-encoded list of subjects
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
     def to_dict(self):
         subjects = []
@@ -203,7 +225,7 @@ def get_current_user():
 
 @app.context_processor
 def inject_global_data():
-    """Inject current user, profile, and active page into all Jinja templates."""
+    """Inject current user, profile, academic calculations, and active page into all Jinja templates."""
     user = get_current_user()
     profile = user.profile if user else None
     if user and not profile:
@@ -213,10 +235,27 @@ def inject_global_data():
             db.session.commit()
         except Exception:
             db.session.rollback()
+
+    global_cgpa_data = {"cgpa": 0.0, "total_credits": 0.0, "total_points": 0.0, "semester_count": 0}
+    global_percentage = 0.0
+    global_performance = "N/A"
+
+    if user:
+        user_sems = Semester.query.filter_by(user_id=user.id).order_by(Semester.semester_no).all()
+        if user_sems:
+            sem_list = [{"credits": s.credits, "sgpa": s.sgpa, "semester_no": s.semester_no} for s in user_sems]
+            global_cgpa_data = calculate_cgpa(sem_list)
+            if global_cgpa_data["cgpa"] > 0:
+                global_percentage = calculate_percentage(global_cgpa_data["cgpa"], 9.5)
+                global_performance = get_performance_class(global_cgpa_data["cgpa"])
+
     return {
         "current_user": user,
         "current_profile": profile,
-        "now": datetime.utcnow()
+        "global_cgpa_data": global_cgpa_data,
+        "global_percentage": global_percentage,
+        "global_performance": global_performance,
+        "now": utcnow()
     }
 
 
@@ -304,6 +343,7 @@ def login_view():
             name = request.form.get("name", "").strip()
             email = request.form.get("email", "").strip().lower()
             branch = request.form.get("branch", "").strip()
+            requested_username = request.form.get("username", "").strip()
 
             if not name:
                 flash("Full Name is required.", "danger")
@@ -318,36 +358,54 @@ def login_view():
                 return render_template("login.html", active_page="login", auth_mode="register")
 
             confirm_password = request.form.get("confirm_password", "")
-            if confirm_password and confirm_password != password:
+            if confirm_password and confirm_password.strip() != password.strip():
                 flash("Passwords do not match. Please try again.", "danger")
                 return render_template("login.html", active_page="login", auth_mode="register")
 
             # Check for existing email
-            if User.query.filter(db.func.lower(User.email) == email).first():
-                flash(f"Email '{email}' is already registered. Please sign in or use a different email.", "warning")
-                return render_template("login.html", active_page="login", auth_mode="register")
+            existing_user = User.query.filter(db.func.lower(User.email) == email).first()
+            if existing_user:
+                flash(f"Email '{email}' is already registered. Please sign in below.", "warning")
+                return render_template("login.html", active_page="login", auth_mode="login", prefill_email=email)
 
-            # Auto-generate a clean, unique internal username from email or name
-            base_username = re.sub(r'[^a-zA-Z0-9_]', '_', email.split("@")[0])[:50] or "student"
+            # Determine username: user-specified, or clean first name, or email prefix
+            if requested_username:
+                base_username = re.sub(r'[^a-zA-Z0-9_]', '_', requested_username)[:50].lower()
+            else:
+                first_name_slug = re.sub(r'[^a-zA-Z0-9_]', '_', name.split()[0])[:50].lower() if name else ""
+                if first_name_slug and not User.query.filter(db.func.lower(User.username) == first_name_slug).first():
+                    base_username = first_name_slug
+                else:
+                    base_username = re.sub(r'[^a-zA-Z0-9_]', '_', email.split("@")[0])[:50].lower() or "student"
+
             username = base_username
             counter = 1
-            while User.query.filter_by(username=username).first():
+            while User.query.filter(db.func.lower(User.username) == username).first():
                 username = f"{base_username}_{counter}"
                 counter += 1
 
-            new_user = User(username=username, email=email, unique_id=None)
+            new_user = User(
+                username=username,
+                email=email,
+                unique_id=None,
+                created_at=utcnow(),
+                last_login=utcnow(),
+                login_count=1
+            )
             new_user.set_password(password)
             db.session.add(new_user)
             db.session.flush()
 
+            roll_no = request.form.get("roll_no", "").strip() or "CS-201"
+            college = request.form.get("college", "").strip() or "College of Engineering & Technology"
             profile = StudentProfile(
                 user_id=new_user.id,
                 name=name,
-                roll_no="",
+                roll_no=roll_no,
                 prn="",
                 branch=branch,
                 year="Second Year (SY)",
-                college="College of Engineering & Technology"
+                college=college
             )
             db.session.add(profile)
             db.session.commit()
@@ -355,7 +413,13 @@ def login_view():
             session.permanent = True
             session["user_id"] = new_user.id
             session["username"] = new_user.username
-            flash(f"Welcome, {name}! Your account has been registered successfully.", "success")
+            flash(f"Welcome, {name}! Your account has been registered successfully. (Username: {new_user.username})", "success")
+            next_page = request.args.get("next") or request.form.get("next")
+            if next_page:
+                if next_page in ["calculator_view", "tracker_view", "achievements_view", "student_info_view"]:
+                    return redirect(url_for(next_page))
+                if next_page.startswith("/") and not next_page.startswith("//"):
+                    return redirect(next_page)
             return redirect(url_for("index"))
 
         elif action == "reset_password":
@@ -364,7 +428,7 @@ def login_view():
             confirm_new_password = request.form.get("confirm_password", "")
 
             if not reset_id:
-                flash("Please enter your registered Email ID or Unique ID.", "danger")
+                flash("Please enter your registered Email ID, Username, or Name.", "danger")
                 return render_template("login.html", active_page="login", auth_mode="reset")
 
             if not new_password:
@@ -464,14 +528,21 @@ def login_view():
                 session.permanent = True
                 session["user_id"] = user.id
                 session["username"] = user.username
-                flash(f"Welcome back, {user.profile.name if user.profile else user.username}!", "success")
-                next_page = request.args.get("next")
-                if next_page and next_page in ["calculator_view", "tracker_view", "achievements_view", "student_info_view"]:
-                    return redirect(url_for(next_page))
+                user.last_login = utcnow()
+                user.login_count = (user.login_count or 0) + 1
+                db.session.commit()
+                disp_name = user.profile.name if user.profile and user.profile.name else user.username
+                flash(f"Welcome back, {disp_name}!", "success")
+                next_page = request.args.get("next") or request.form.get("next")
+                if next_page:
+                    if next_page in ["calculator_view", "tracker_view", "achievements_view", "student_info_view"]:
+                        return redirect(url_for(next_page))
+                    if next_page.startswith("/") and not next_page.startswith("//"):
+                        return redirect(next_page)
                 return redirect(url_for("index"))
             else:
                 flash("Invalid Email ID or password.", "danger")
-                return render_template("login.html", active_page="login")
+                return render_template("login.html", active_page="login", prefill_email=login_id)
 
     return render_template("login.html", active_page="login")
 
@@ -656,10 +727,23 @@ def achievements_view():
                 rank = idx + 1
         item["rank"] = rank
 
+    # Extract active student's individual rank and CGPA for quick display
+    curr_u = get_current_user()
+    my_rank = None
+    my_cgpa = 0.0
+    if curr_u:
+        for item in leaderboard:
+            if item["user_id"] == curr_u.id:
+                my_rank = item["rank"]
+                my_cgpa = item["cgpa"]
+                break
+
     return render_template(
         "achievements.html",
         active_page="achievements",
-        leaderboard=leaderboard
+        leaderboard=leaderboard,
+        my_rank=my_rank,
+        my_cgpa=my_cgpa
     )
 
 
@@ -823,13 +907,19 @@ def api_save_cgpa():
         saved_items = []
         for idx, item in enumerate(semesters_data, start=1):
             sem_name = str(item.get("semester_name", f"Semester {idx}")).strip()
-            
-            # Extract number from name if possible (e.g. 'Semester 2 (FY)' -> 2)
-            match = re.search(r'(?:Semester|Sem)\s*(\d+)', sem_name, re.IGNORECASE)
-            if match:
-                sem_no = int(match.group(1))
+
+            # Prefer explicit numeric semester_no if provided, otherwise extract from name
+            if "semester_no" in item and str(item["semester_no"]).strip().isdigit():
+                sem_no = int(item["semester_no"])
             else:
-                sem_no = int(item.get("semester_no", idx))
+                match = re.search(r'(?:Semester|Sem)\s*(\d+)', sem_name, re.IGNORECASE)
+                if match:
+                    sem_no = int(match.group(1))
+                else:
+                    sem_no = idx
+
+            if sem_no < 1 or sem_no > 12:
+                sem_no = idx
 
             sgpa = float(item.get("sgpa", 0))
             if sgpa < 0 or sgpa > 10:
@@ -1026,7 +1116,17 @@ def api_semester_detail(semester_id):
                 semester.sgpa = s
                 
             if "semester_no" in data:
-                semester.semester_no = int(data["semester_no"])
+                new_sem_no = int(data["semester_no"])
+                if new_sem_no < 1 or new_sem_no > 12:
+                    return jsonify({"success": False, "error": "Semester number must be between 1 and 12."}), 400
+                duplicate = Semester.query.filter(
+                    Semester.user_id == user.id,
+                    Semester.semester_no == new_sem_no,
+                    Semester.id != semester.id
+                ).first()
+                if duplicate:
+                    return jsonify({"success": False, "error": f"Semester {new_sem_no} already exists in your tracker. Edit that entry instead."}), 400
+                semester.semester_no = new_sem_no
                 
             if "semester_name" in data:
                 semester.semester_name = str(data["semester_name"]).strip()
@@ -1048,29 +1148,36 @@ def api_student_info():
 
 
 @app.route("/api/users/<int:user_id>", methods=["DELETE"])
-def api_delete_user(user_id):
-    """Delete a user account and their records completely from achievements and database (owner only)."""
+@app.route("/api/users/me", methods=["DELETE"])
+def api_delete_user(user_id=None):
+    """Delete a user account and their records completely from achievements and database.
+    Strictly authorized: users can only delete their own account.
+    """
     current = get_current_user()
     if not current:
-        return jsonify({"success": False, "error": "Authentication required. Please sign in as this student to delete your record."}), 401
+        return jsonify({"success": False, "error": "Authentication required. Please log in to manage your record."}), 401
 
-    if current.id != user_id:
-        return jsonify({"success": False, "error": "Permission denied: You can only delete your own student record. You must log in as that student."}), 403
+    target_id = current.id if user_id is None else user_id
+    if current.id != target_id:
+        return jsonify({"success": False, "error": "Access Denied: You are only permitted to delete your own student record. You must log in as that student."}), 403
 
-    user = User.query.get(user_id)
+    user = User.query.get(target_id)
     if not user:
         return jsonify({"success": False, "error": "User record not found."}), 404
 
     try:
         user_name = user.profile.name if user.profile else user.username
+        is_current = session.get("user_id") == user.id
+
         db.session.delete(user)
         db.session.commit()
-        session.clear()
+        if is_current:
+            session.clear()
 
         return jsonify({
             "success": True,
-            "message": f"Your student record '{user_name}' has been successfully deleted.",
-            "logged_out": True
+            "message": f"Student '{user_name}' and all associated records have been permanently deleted from the database.",
+            "logged_out": is_current
         })
     except Exception as e:
         db.session.rollback()
@@ -1078,27 +1185,31 @@ def api_delete_user(user_id):
 
 
 @app.route("/api/users/<int:user_id>/clear-data", methods=["POST", "DELETE"])
-def api_clear_user_data(user_id):
-    """Clear all saved semester and CGPA data for a user, resetting their score to 0.00 in Achievements (owner only)."""
+@app.route("/api/users/me/clear-data", methods=["POST", "DELETE"])
+def api_clear_user_data(user_id=None):
+    """Clear all saved semester and CGPA data for a user, resetting their score to 0.00 in Achievements.
+    Strictly authorized: users can only reset or clear their own CGPA data.
+    """
     current = get_current_user()
     if not current:
-        return jsonify({"success": False, "error": "Authentication required. Please sign in as this student to reset your CGPA."}), 401
+        return jsonify({"success": False, "error": "Authentication required. Please log in to manage your data."}), 401
 
-    if current.id != user_id:
-        return jsonify({"success": False, "error": "Permission denied: You can only reset your own CGPA records. You must log in as that student."}), 403
+    target_id = current.id if user_id is None else user_id
+    if current.id != target_id:
+        return jsonify({"success": False, "error": "Access Denied: You are only permitted to reset or modify your own CGPA data. You must log in as that student."}), 403
 
-    user = User.query.get(user_id)
+    user = User.query.get(target_id)
     if not user:
         return jsonify({"success": False, "error": "User record not found."}), 404
 
     try:
         user_name = user.profile.name if user.profile else user.username
-        Semester.query.filter_by(user_id=user.id).delete()
+        deleted_count = Semester.query.filter_by(user_id=user.id).delete()
         db.session.commit()
 
         return jsonify({
             "success": True,
-            "message": f"CGPA and semester records for '{user_name}' have been reset to 0.00."
+            "message": f"CGPA and semester records ({deleted_count} entries) for '{user_name}' have been permanently deleted from the database."
         })
     except Exception as e:
         db.session.rollback()
@@ -1114,13 +1225,27 @@ def init_db():
     with app.app_context():
         try:
             db.create_all()
+
+            # Automatic SQLite column migrations for new fields
+            try:
+                inspector = db.inspect(db.engine)
+                cols = [c["name"] for c in inspector.get_columns("users")]
+                with db.engine.connect() as conn:
+                    if "last_login" not in cols:
+                        conn.execute(db.text("ALTER TABLE users ADD COLUMN last_login DATETIME"))
+                    if "login_count" not in cols:
+                        conn.execute(db.text("ALTER TABLE users ADD COLUMN login_count INTEGER DEFAULT 0"))
+                    conn.commit()
+            except Exception as mig_err:
+                app.logger.warning(f"Migration check notice: {mig_err}")
+
             if User.query.count() == 0:
                 seed_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed_data.json")
                 if os.path.exists(seed_json):
                     with open(seed_json, "r", encoding="utf-8") as f:
                         data = json.load(f)
                     for u in data.get("users", []):
-                        created_dt = datetime.fromisoformat(u["created_at"]) if u.get("created_at") else datetime.utcnow()
+                        created_dt = datetime.fromisoformat(u["created_at"]) if u.get("created_at") else datetime.now(timezone.utc)
                         user = User(
                             id=u["id"],
                             unique_id=u.get("unique_id"),
@@ -1133,13 +1258,13 @@ def init_db():
                     db.session.flush()
 
                     for p in data.get("student_profiles", []):
-                        updated_dt = datetime.fromisoformat(p["updated_at"]) if p.get("updated_at") else datetime.utcnow()
+                        updated_dt = datetime.fromisoformat(p["updated_at"]) if p.get("updated_at") else datetime.now(timezone.utc)
                         profile = StudentProfile(
                             id=p["id"],
                             user_id=p["user_id"],
                             name=p.get("name", "Student"),
                             roll_no=p.get("roll_no", ""),
-                            prn=p.get("prn", ""),
+                            prn="",
                             branch=p.get("branch", "B.Tech Computer Science & Engineering"),
                             year=p.get("year", "Second Year (SY)"),
                             college=p.get("college", "College of Engineering & Technology"),
@@ -1148,7 +1273,7 @@ def init_db():
                         db.session.add(profile)
 
                     for s in data.get("semesters", []):
-                        created_dt = datetime.fromisoformat(s["created_at"]) if s.get("created_at") else datetime.utcnow()
+                        created_dt = datetime.fromisoformat(s["created_at"]) if s.get("created_at") else datetime.now(timezone.utc)
                         sem = Semester(
                             id=s["id"],
                             user_id=s["user_id"],
@@ -1163,6 +1288,27 @@ def init_db():
                         db.session.add(sem)
 
                     db.session.commit()
+
+            # Ensure all student profiles have clean College and Branch (no DY Patil or Data Science) and empty PRN
+            try:
+                for prof in StudentProfile.query.all():
+                    changed = False
+                    if not prof.college or "D.Y. Patil" in prof.college or "DY Patil" in prof.college or prof.college == "Engineering Institute":
+                        prof.college = "College of Engineering & Technology"
+                        changed = True
+                    if prof.prn:
+                        prof.prn = ""
+                        changed = True
+                    if not prof.branch or "(Data Science)" in prof.branch or "Data Science" in prof.branch:
+                        prof.branch = "B.Tech Computer Science & Engineering"
+                        changed = True
+                    if changed:
+                        db.session.add(prof)
+
+                db.session.commit()
+            except Exception as sync_err:
+                db.session.rollback()
+                app.logger.warning(f"Profile synchronization notice: {sync_err}")
         except Exception as e:
             db.session.rollback()
             app.logger.error(f"Error during init_db: {e}")

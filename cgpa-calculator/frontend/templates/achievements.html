@@ -22,6 +22,36 @@
   </div>
 </div>
 
+<!-- Student Identity Banner (When logged in) -->
+{% if current_user and current_profile %}
+<div class="card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem; background: var(--bg-secondary); border-left: 4px solid var(--primary);">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+    <div>
+      <strong style="color: var(--text-main); font-size: 1.05rem;">👨‍🎓 {{ current_profile.name }}</strong>
+      <span style="color: var(--text-muted); font-size: 0.88rem; margin-left: 0.5rem;">
+        Roll: <strong>{{ current_profile.roll_no or 'N/A' }}</strong> &bull; 
+        PRN: <strong>{{ current_profile.prn or 'N/A' }}</strong> &bull; 
+        {{ current_profile.branch }} &bull; 
+        <strong>{{ current_profile.college or 'D.Y. Patil College of Engineering & Technology, Kolhapur' }}</strong>
+      </span>
+      {% if my_rank %}
+      <span class="badge badge-A-plus" style="margin-left: 0.5rem;">
+        Your Department Rank: #{{ my_rank }} &bull; CGPA: {{ "%.2f"|format(my_cgpa) }}
+      </span>
+      {% endif %}
+    </div>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+      <a href="{{ url_for('tracker_view') }}" class="btn btn-outline btn-sm" style="font-size: 0.8rem;">
+        &#128200; My Tracker
+      </a>
+      <a href="{{ url_for('student_info_view') }}" class="btn btn-secondary btn-sm" style="font-size: 0.8rem;">
+        &#9998; Edit Profile
+      </a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <!-- Top 3 Podium Cards (if enough students) -->
 {% if leaderboard|length >= 3 and leaderboard[0].cgpa > 0 %}
 <div class="grid-3" style="margin-bottom: 2rem;">
@@ -79,7 +109,7 @@
           <th style="text-align: center;">Completed Credits</th>
           <th style="text-align: center;">Equivalent %</th>
           <th style="text-align: right; width: 100px;">CGPA</th>
-          <th style="text-align: center; width: 140px;">Action</th>
+          <th style="text-align: center; width: 150px;">Manage</th>
         </tr>
       </thead>
       <tbody>
@@ -137,16 +167,16 @@
             {% if current_user and student.user_id == current_user.id %}
             <div style="display: flex; gap: 0.35rem; justify-content: center; flex-wrap: wrap;">
               {% if student.semesters_count > 0 %}
-              <button type="button" class="btn btn-secondary btn-sm" style="font-size: 0.76rem; padding: 0.25rem 0.5rem;" onclick="clearUserAchievement({{ student.user_id }}, '{{ student.name }}')" title="Reset My CGPA">
-                🧹 Reset
+              <button type="button" class="btn btn-secondary btn-sm" style="font-size: 0.76rem; padding: 0.25rem 0.5rem;" data-user-id="{{ student.user_id }}" data-student-name="{{ student.name }}" onclick="clearUserAchievementFromBtn(this)" title="Reset your CGPA to 0.00 and permanently remove semester records">
+                🧹 Reset My CGPA
               </button>
               {% endif %}
-              <button type="button" class="btn btn-danger-outline btn-sm" style="font-size: 0.76rem; padding: 0.25rem 0.5rem;" onclick="deleteUserAchievement({{ student.user_id }}, '{{ student.name }}')" title="Delete My Student Record">
-                🗑️ Delete
+              <button type="button" class="btn btn-danger-outline btn-sm" style="font-size: 0.76rem; padding: 0.25rem 0.5rem;" data-user-id="{{ student.user_id }}" data-student-name="{{ student.name }}" onclick="deleteUserAchievementFromBtn(this)" title="Permanently delete your account and all records">
+                🗑️ Delete Account
               </button>
             </div>
             {% else %}
-            <span style="font-size: 0.76rem; color: var(--text-muted); font-style: italic;">Protected</span>
+            <span style="color: var(--text-muted); font-size: 0.8rem; opacity: 0.65;" title="Only the account owner can modify or delete this record">🔒 Protected</span>
             {% endif %}
           </td>
         </tr>
@@ -166,8 +196,20 @@
 
 {% block scripts %}
 <script>
+function deleteUserAchievementFromBtn(btn) {
+  const userId = btn.dataset.userId;
+  const studentName = btn.dataset.studentName || 'Student';
+  deleteUserAchievement(userId, studentName);
+}
+
+function clearUserAchievementFromBtn(btn) {
+  const userId = btn.dataset.userId;
+  const studentName = btn.dataset.studentName || 'Student';
+  clearUserAchievement(userId, studentName);
+}
+
 async function deleteUserAchievement(userId, studentName) {
-  if (!confirm(`Are you sure you want to delete "${studentName}"?\n\nThis will permanently remove the student record and their data from Achievements and the database.`)) {
+  if (!confirm(`Are you sure you want to permanently delete your student account ("${studentName}")?\n\nThis will remove your account and all semester records from the database permanently. This action cannot be undone.`)) {
     return;
   }
   try {
@@ -177,18 +219,14 @@ async function deleteUserAchievement(userId, studentName) {
       throw new Error(data.error || 'Failed to delete student.');
     }
     alert(data.message);
-    if (data.logged_out) {
-      window.location.href = '/login';
-    } else {
-      window.location.reload();
-    }
+    window.location.href = '/login';
   } catch (err) {
     alert('Error: ' + err.message);
   }
 }
 
 async function clearUserAchievement(userId, studentName) {
-  if (!confirm(`Reset CGPA data for "${studentName}"?\n\nThis will clear all saved semesters and reset their CGPA score to 0.00 in Achievements.`)) {
+  if (!confirm(`Reset your CGPA data ("${studentName}")?\n\nThis will permanently delete all your saved semesters and reset your CGPA score to 0.00 in the database.`)) {
     return;
   }
   try {

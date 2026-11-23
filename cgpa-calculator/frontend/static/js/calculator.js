@@ -499,6 +499,13 @@ async function calculateDypcetYearResult() {
   }
 }
 
+function getSemesterYearTag(semNo) {
+  if (semNo <= 2) return "(FY)";
+  if (semNo <= 4) return "(SY)";
+  if (semNo <= 6) return "(TY)";
+  return "(Final Year)";
+}
+
 /**
  * Save both semesters of the active year to the database tracker
  */
@@ -524,14 +531,14 @@ async function saveDypcetYearSemesters() {
       semesters: [
         {
           semester_no: resA.semester_no,
-          semester_name: `Semester ${resA.semester_no} (SY)`,
+          semester_name: `Semester ${resA.semester_no} ${getSemesterYearTag(resA.semester_no)}`,
           credits: resA.credits,
           sgpa: resA.sgpa,
           subjects: resA.subjects
         },
         {
           semester_no: resB.semester_no,
-          semester_name: `Semester ${resB.semester_no} (SY)`,
+          semester_name: `Semester ${resB.semester_no} ${getSemesterYearTag(resB.semester_no)}`,
           credits: resB.credits,
           sgpa: resB.sgpa,
           subjects: resB.subjects
@@ -585,7 +592,7 @@ async function saveIndividualDypcetSemester(semNo) {
   try {
     const payload = {
       semester_no: res.semester_no,
-      semester_name: `Semester ${res.semester_no} (SY)`,
+      semester_name: `Semester ${res.semester_no} ${getSemesterYearTag(res.semester_no)}`,
       credits: res.credits,
       sgpa: res.sgpa,
       subjects: res.subjects

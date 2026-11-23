@@ -7,7 +7,7 @@
   <div class="card" style="padding: 2.25rem;">
     
     <!-- Student Identity Header -->
-    <div style="text-align: center; margin-bottom: 1.75rem;">
+    <div style="text-align: center; margin-bottom: 1.5rem;">
       <div class="college-tag">
         <span>👨‍🎓</span> Student Academic Portal
       </div>
@@ -15,7 +15,7 @@
         Student Portal
       </h2>
       <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.25rem;">
-        Academic Grade &amp; CGPA Portal
+        Academic Grade &amp; CGPA Portal &bull; D.Y. Patil College
       </p>
     </div>
 
@@ -35,6 +35,7 @@
     <!-- Login Form -->
     <form id="loginForm" method="POST" action="{{ url_for('login_view') }}" autocomplete="off">
       <input type="hidden" name="action" value="login">
+      <input type="hidden" name="next" value="{{ next_url or '' }}">
 
       <!-- Anti-autofill decoy inputs to prevent browser password managers from pre-filling credentials -->
       <input type="text" name="fake_user_trap" style="position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0;" tabindex="-1" autocomplete="off" aria-hidden="true">
@@ -42,14 +43,14 @@
 
       <div class="form-group">
         <label for="loginEmail" class="form-label">
-          Email ID / Username <span class="req">*</span>
+          Email ID / Username / Name <span class="req">*</span>
         </label>
         <input 
           type="text" 
           id="loginEmail" 
           name="email" 
           class="form-control" 
-          placeholder="Enter your Email ID, Username, or Unique ID" 
+          placeholder="Enter your Email ID, Username, or Full Name" 
           required 
           autocomplete="off"
           autocorrect="off"
@@ -71,7 +72,7 @@
             class="form-control" 
             placeholder="Enter your password" 
             required 
-            autocomplete="new-password"
+            autocomplete="current-password"
             value=""
           >
           <button type="button" class="password-toggle-btn" aria-label="Show password" title="Show password" onclick="togglePasswordVisibility('loginPassword', this)">
@@ -86,6 +87,11 @@
               <line x1="2" x2="22" y1="2" y2="22"/>
             </svg>
           </button>
+        </div>
+        <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 0.5rem;">
+          <a href="javascript:void(0)" onclick="switchAuthTab('reset')" style="font-size: 0.8rem; color: var(--primary); text-decoration: underline;">
+            Forgot password?
+          </a>
         </div>
       </div>
 
@@ -103,6 +109,7 @@
     <!-- Register Form -->
     <form id="registerForm" method="POST" action="{{ url_for('login_view') }}" style="display: none;">
       <input type="hidden" name="action" value="register">
+      <input type="hidden" name="next" value="{{ next_url or '' }}">
 
       <div class="form-group">
         <label for="regName" class="form-label">
@@ -117,6 +124,34 @@
           required
           autocomplete="name"
         >
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="regRollNo" class="form-label">
+            Roll Number <span style="font-weight: 400; color: var(--text-muted); font-size: 0.8rem;">(e.g. DS-201 or 69)</span>
+          </label>
+          <input 
+            type="text" 
+            id="regRollNo" 
+            name="roll_no" 
+            class="form-control" 
+            placeholder="e.g. DS-201" 
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="regPrn" class="form-label">
+            PRN Number <span style="font-weight: 400; color: var(--text-muted); font-size: 0.8rem;">(Permanent Reg. No)</span>
+          </label>
+          <input 
+            type="text" 
+            id="regPrn" 
+            name="prn" 
+            class="form-control" 
+            placeholder="e.g. 202401234567" 
+          >
+        </div>
       </div>
 
       <div class="form-group">
@@ -135,6 +170,20 @@
       </div>
 
       <div class="form-group">
+        <label for="regUsername" class="form-label">
+          Username <span style="font-weight: 400; color: var(--text-muted); font-size: 0.8rem;">(Optional &bull; e.g. sahil)</span>
+        </label>
+        <input 
+          type="text" 
+          id="regUsername" 
+          name="username" 
+          class="form-control" 
+          placeholder="Choose a username (or leave blank to auto-use first name)" 
+          autocomplete="username"
+        >
+      </div>
+
+      <div class="form-group">
         <label for="regBranch" class="form-label">
           Branch &amp; Degree <span class="req">*</span>
         </label>
@@ -143,7 +192,22 @@
           id="regBranch" 
           name="branch" 
           class="form-control" 
-          placeholder="e.g. B.Tech Computer Science & Engineering" 
+          placeholder="e.g. B.Tech Computer Science & Engineering (Data Science)" 
+          value="B.Tech Computer Science & Engineering (Data Science)"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="regCollege" class="form-label">
+          College / Institution Name <span class="req">*</span>
+        </label>
+        <input 
+          type="text" 
+          id="regCollege" 
+          name="college" 
+          class="form-control" 
+          value="D.Y. Patil College of Engineering & Technology, Kolhapur" 
           required
         >
       </div>
@@ -295,6 +359,64 @@
       <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1.5rem;">
         Update Password &amp; Sign In &rarr;
       </button>
+    </form>
+
+    <!-- Reset Password Form -->
+    <form id="resetForm" method="POST" action="{{ url_for('login_view') }}" style="display: none;">
+      <input type="hidden" name="action" value="reset_password">
+      <input type="hidden" name="next" value="{{ next_url or '' }}">
+
+      <div class="form-group">
+        <label for="resetEmail" class="form-label">
+          Registered Email ID or Username <span class="req">*</span>
+        </label>
+        <input 
+          type="text" 
+          id="resetEmail" 
+          name="email" 
+          class="form-control" 
+          placeholder="e.g. sahil or student@example.com" 
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="resetNewPassword" class="form-label">
+          New Password <span class="req">*</span>
+        </label>
+        <input 
+          type="password" 
+          id="resetNewPassword" 
+          name="new_password" 
+          class="form-control" 
+          placeholder="Enter new password" 
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="resetConfirmPassword" class="form-label">
+          Confirm New Password <span class="req">*</span>
+        </label>
+        <input 
+          type="password" 
+          id="resetConfirmPassword" 
+          name="confirm_new_password" 
+          class="form-control" 
+          placeholder="Re-enter new password" 
+          required
+        >
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top: 1.5rem;">
+        Update Password Now &rarr;
+      </button>
+
+      <div style="text-align: center; margin-top: 1rem;">
+        <a href="javascript:void(0)" onclick="switchAuthTab('login')" style="font-size: 0.85rem; color: var(--text-muted); text-decoration: none;">
+          &larr; Back to Sign In
+        </a>
+      </div>
     </form>
 
   </div>

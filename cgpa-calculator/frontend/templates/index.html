@@ -88,6 +88,27 @@
         </div>
       </div>
     </div>
+
+    {% if semesters and semesters|length > 0 %}
+    <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+        <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">Recorded Semesters ({{ semesters|length }}):</span>
+        {% for sem in semesters %}
+          <span class="badge badge-A-plus" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">
+            {{ sem.semester_name or ('Sem ' ~ sem.semester_no) }}: <strong>{{ "%.2f"|format(sem.sgpa) }} SGPA</strong> ({{ "%.1f"|format(sem.credits) }} cr)
+          </span>
+        {% endfor %}
+      </div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <a href="{{ url_for('tracker_view') }}" class="btn btn-secondary btn-sm">
+          &#128200; Open CGPA Tracker &rarr;
+        </a>
+        <a href="{{ url_for('transcript_report') }}" class="btn btn-outline btn-sm" target="_blank">
+          &#128438; Print Transcript
+        </a>
+      </div>
+    </div>
+    {% endif %}
   </div>
 </div>
 {% else %}
