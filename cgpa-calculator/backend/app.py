@@ -342,7 +342,11 @@ def login_view():
 
             name = request.form.get("name", "").strip()
             email = request.form.get("email", "").strip().lower()
-            branch = request.form.get("branch", "").strip()
+            raw_branch = request.form.get("branch", "").strip()
+            clean_branch = raw_branch.replace("(Data Science)", "").replace("Data Science", "").strip()
+            if not clean_branch or clean_branch.endswith("&"):
+                clean_branch = "B.Tech Computer Science & Engineering"
+            branch = clean_branch or "B.Tech Computer Science & Engineering"
             requested_username = request.form.get("username", "").strip()
 
             if not name:
@@ -397,7 +401,11 @@ def login_view():
             db.session.flush()
 
             roll_no = request.form.get("roll_no", "").strip() or "CS-201"
-            college = request.form.get("college", "").strip() or "College of Engineering & Technology"
+            raw_college = request.form.get("college", "").strip()
+            if not raw_college or "D.Y. Patil" in raw_college or "DY Patil" in raw_college:
+                college = "College of Engineering & Technology"
+            else:
+                college = raw_college
             profile = StudentProfile(
                 user_id=new_user.id,
                 name=name,
@@ -601,9 +609,21 @@ def student_info_view():
     if request.method == "POST":
         profile.name = request.form.get("name", "").strip() or profile.name
         profile.roll_no = request.form.get("roll_no", "").strip()
-        profile.branch = request.form.get("branch", "").strip() or profile.branch
+        profile.prn = ""
+        
+        new_branch = request.form.get("branch", "").strip() or profile.branch
+        if new_branch:
+            new_branch = new_branch.replace("(Data Science)", "").replace("Data Science", "").strip()
+            if not new_branch or new_branch.endswith("&"):
+                new_branch = "B.Tech Computer Science & Engineering"
+        profile.branch = new_branch or "B.Tech Computer Science & Engineering"
+        
         profile.year = request.form.get("year", "").strip() or profile.year
-        profile.college = request.form.get("college", "").strip() or profile.college
+        
+        new_college = request.form.get("college", "").strip() or profile.college
+        if new_college and ("D.Y. Patil" in new_college or "DY Patil" in new_college):
+            new_college = "College of Engineering & Technology"
+        profile.college = new_college or "College of Engineering & Technology"
         
         db.session.commit()
         flash("Student profile updated successfully!", "success")

@@ -15,7 +15,7 @@
         Student Portal
       </h2>
       <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.25rem;">
-        Academic Grade &amp; CGPA Portal &bull; D.Y. Patil College
+        Academic Grade &amp; CGPA Portal &bull; Engineering Degree
       </p>
     </div>
 
@@ -56,6 +56,8 @@
           autocorrect="off"
           autocapitalize="none"
           spellcheck="false"
+          readonly
+          onfocus="this.removeAttribute('readonly');"
           value=""
         >
       </div>
@@ -72,7 +74,9 @@
             class="form-control" 
             placeholder="Enter your password" 
             required 
-            autocomplete="current-password"
+            autocomplete="new-password"
+            readonly
+            onfocus="this.removeAttribute('readonly');"
             value=""
           >
           <button type="button" class="password-toggle-btn" aria-label="Show password" title="Show password" onclick="togglePasswordVisibility('loginPassword', this)">
@@ -126,32 +130,17 @@
         >
       </div>
 
-      <div class="grid-2">
-        <div class="form-group">
-          <label for="regRollNo" class="form-label">
-            Roll Number <span style="font-weight: 400; color: var(--text-muted); font-size: 0.8rem;">(e.g. DS-201 or 69)</span>
-          </label>
-          <input 
-            type="text" 
-            id="regRollNo" 
-            name="roll_no" 
-            class="form-control" 
-            placeholder="e.g. DS-201" 
-          >
-        </div>
-
-        <div class="form-group">
-          <label for="regPrn" class="form-label">
-            PRN Number <span style="font-weight: 400; color: var(--text-muted); font-size: 0.8rem;">(Permanent Reg. No)</span>
-          </label>
-          <input 
-            type="text" 
-            id="regPrn" 
-            name="prn" 
-            class="form-control" 
-            placeholder="e.g. 202401234567" 
-          >
-        </div>
+      <div class="form-group">
+        <label for="regRollNo" class="form-label">
+          Roll Number <span style="font-weight: 400; color: var(--text-muted); font-size: 0.8rem;">(e.g. 69 or CS-201)</span>
+        </label>
+        <input 
+          type="text" 
+          id="regRollNo" 
+          name="roll_no" 
+          class="form-control" 
+          placeholder="e.g. 69 or CS-201" 
+        >
       </div>
 
       <div class="form-group">
@@ -192,8 +181,8 @@
           id="regBranch" 
           name="branch" 
           class="form-control" 
-          placeholder="e.g. B.Tech Computer Science & Engineering (Data Science)" 
-          value="B.Tech Computer Science & Engineering (Data Science)"
+          placeholder="e.g. B.Tech Computer Science & Engineering" 
+          value="B.Tech Computer Science & Engineering"
           required
         >
       </div>
@@ -207,7 +196,7 @@
           id="regCollege" 
           name="college" 
           class="form-control" 
-          value="D.Y. Patil College of Engineering & Technology, Kolhapur" 
+          value="College of Engineering & Technology" 
           required
         >
       </div>
@@ -485,22 +474,33 @@ switchAuthTab('{{ auth_mode or "login" }}');
 function clearAutofilledLogin() {
   const emailInput = document.getElementById('loginEmail');
   const passInput = document.getElementById('loginPassword');
-  if (emailInput && !emailInput.matches(':focus')) {
+  if (emailInput && !emailInput.dataset.userInteracted && !emailInput.matches(':focus')) {
     emailInput.value = '';
   }
-  if (passInput && !passInput.matches(':focus')) {
+  if (passInput && !passInput.dataset.userInteracted && !passInput.matches(':focus')) {
     passInput.value = '';
   }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
+// Track if user actually typed so we don't clear their typed input
+document.addEventListener('DOMContentLoaded', () => {
+  ['loginEmail', 'loginPassword'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', () => { el.dataset.userInteracted = '1'; });
+      el.addEventListener('keydown', () => { el.dataset.userInteracted = '1'; });
+    }
+  });
   clearAutofilledLogin();
   setTimeout(clearAutofilledLogin, 50);
-  setTimeout(clearAutofilledLogin, 200);
+  setTimeout(clearAutofilledLogin, 150);
+  setTimeout(clearAutofilledLogin, 300);
+  setTimeout(clearAutofilledLogin, 600);
 });
 
 window.addEventListener('pageshow', () => {
   clearAutofilledLogin();
+  setTimeout(clearAutofilledLogin, 100);
 });
 </script>
 {% endblock %}

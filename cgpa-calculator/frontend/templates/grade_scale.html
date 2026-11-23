@@ -21,9 +21,8 @@
       <strong style="color: var(--text-main); font-size: 1.05rem;">👨‍🎓 {{ current_profile.name }}</strong>
       <span style="color: var(--text-muted); font-size: 0.88rem; margin-left: 0.5rem;">
         Roll: <strong>{{ current_profile.roll_no or 'N/A' }}</strong> &bull; 
-        PRN: <strong>{{ current_profile.prn or 'N/A' }}</strong> &bull; 
         {{ current_profile.branch }} &bull; 
-        <strong>{{ current_profile.college or 'D.Y. Patil College of Engineering & Technology, Kolhapur' }}</strong>
+        <strong>{{ current_profile.college or 'College of Engineering & Technology' }}</strong>
       </span>
       {% if global_cgpa_data and global_cgpa_data.cgpa > 0 %}
       <span class="badge badge-A-plus" style="margin-left: 0.5rem;">

@@ -78,7 +78,7 @@ function switchMainTab(tab) {
 }
 
 // =============================================================================
-// TAB 1: DYPCET DATA SCIENCE LOGIC
+// TAB 1: ACADEMIC CURRICULUM LOGIC
 // =============================================================================
 function initDypcetTab() {
   const select = document.getElementById("dypcetYearSelect");

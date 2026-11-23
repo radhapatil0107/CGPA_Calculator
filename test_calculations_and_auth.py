@@ -240,7 +240,7 @@ class TestAuthenticationAndLogin(unittest.TestCase):
             "action": "register",
             "name": "Radhika Patil",
             "email": "radhika.patil@example.com",
-            "branch": "B.Tech CSE (Data Science)",
+            "branch": "B.Tech Computer Science & Engineering",
             "password": "MySecretPassword",
             "confirm_password": "MySecretPassword"
         })
@@ -455,16 +455,15 @@ class TestAuthenticationAndLogin(unittest.TestCase):
 
     def test_global_data_and_ui_sync_across_web_pages(self):
         """Verify student identity, CGPA, credits, and percentage sync across all application pages."""
-        # 1. Register a student with roll no and PRN
+        # 1. Register a student with roll no
         reg_res = self.client.post("/login", data={
             "action": "register",
             "name": "Sync Master Student",
-            "email": "sync_master@dypcet.edu",
+            "email": "sync_master@college.edu",
             "username": "sync_master",
-            "roll_no": "DS-888",
-            "prn": "202488888888",
-            "branch": "B.Tech Computer Science & Engineering (Data Science)",
-            "college": "D.Y. Patil College of Engineering & Technology, Kolhapur",
+            "roll_no": "CS-888",
+            "branch": "B.Tech Computer Science & Engineering",
+            "college": "College of Engineering & Technology",
             "password": "MasterPassword123",
             "confirm_password": "MasterPassword123"
         }, follow_redirects=True)
@@ -478,7 +477,7 @@ class TestAuthenticationAndLogin(unittest.TestCase):
             self.assertEqual(res.status_code, 200, f"Failed on {p}")
             html = res.data.decode("utf-8")
             self.assertIn("Sync Master Student", html, f"Name missing on {p}")
-            self.assertIn("DS-888", html, f"Roll missing on {p}")
+            self.assertIn("CS-888", html, f"Roll missing on {p}")
 
         # 3. Save 2 semesters via /api/save-cgpa
         save_res = self.client.post("/api/save-cgpa", json={
@@ -511,11 +510,10 @@ class TestAuthenticationAndLogin(unittest.TestCase):
         # 5. Live Profile Update Sync Test
         up_res = self.client.post("/student-info", data={
             "name": "Sync Master Updated",
-            "roll_no": "DS-777",
-            "prn": "202477777777",
-            "branch": "CSE Data Science",
+            "roll_no": "CS-777",
+            "branch": "B.Tech Computer Science & Engineering",
             "year": "Final Year",
-            "college": "DYPCET"
+            "college": "College of Engineering & Technology"
         }, follow_redirects=True)
         self.assertEqual(up_res.status_code, 200)
 
@@ -523,7 +521,7 @@ class TestAuthenticationAndLogin(unittest.TestCase):
             res = self.client.get(p)
             html = res.data.decode("utf-8")
             self.assertIn("Sync Master Updated", html, f"Updated name missing on {p}")
-            self.assertIn("DS-777", html, f"Updated roll missing on {p}")
+            self.assertIn("CS-777", html, f"Updated roll missing on {p}")
 
 
 if __name__ == "__main__":
